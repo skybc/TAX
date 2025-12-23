@@ -13,6 +13,10 @@ from PyQt5.QtWidgets import (
 )
 
 from src.logger import get_logger
+from src.core.data_manager import DataManager
+from src.ui.widgets.image_canvas import ImageCanvasWithInfo
+from src.ui.widgets.file_browser import FileBrowser
+from src.ui.dialogs.import_dialog import ImportDialog
 
 logger = get_logger(__name__)
 
@@ -44,6 +48,16 @@ class MainWindow(QMainWindow):
         self.paths_config = paths_config
         self.hyperparams = hyperparams
         
+        # Initialize DataManager
+        from pathlib import Path
+        data_root = Path(paths_config['paths']['data_root'])
+        cache_size = config['performance']['max_cache_size']
+        self.data_manager = DataManager(str(data_root), cache_size_mb=cache_size)
+        
+        # Current state
+        self.current_image_path: str = None
+        self.current_image_index: int = -1
+        
         # Window settings
         self.setWindowTitle(config['app']['name'])
         self.setGeometry(
@@ -57,6 +71,7 @@ class MainWindow(QMainWindow):
         self._create_menus()
         self._create_toolbar()
         self._create_statusbar()
+        self._connect_signals()
         
         logger.info("Main window initialized")
     
@@ -72,19 +87,15 @@ class MainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(self.main_splitter)
         
-        # Left panel - File browser (placeholder)
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.addWidget(QLabel("File Browser\n(To be implemented)"))
-        self.main_splitter.addWidget(left_panel)
+        # Left panel - File browser
+        self.file_browser = FileBrowser(self)
+        self.main_splitter.addWidget(self.file_browser)
         
-        # Center panel - Image canvas (placeholder)
-        center_panel = QWidget()
-        center_layout = QVBoxLayout(center_panel)
-        center_layout.addWidget(QLabel("Image Canvas\n(To be implemented)"))
-        self.main_splitter.addWidget(center_panel)
+        # Center panel - Image canvas
+        self.image_canvas = ImageCanvasWithInfo(self)
+        self.main_splitter.addWidget(self.image_canvas)
         
-        # Right panel - Properties (placeholder)
+        # Right panel - Properties (placeholder for now)
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
         right_layout.addWidget(QLabel("Properties Panel\n(To be implemented)"))
@@ -194,14 +205,116 @@ class MainWindow(QMainWindow):
         self.coords_label = QLabel("Position: (0, 0)")
         self.statusBar.addPermanentWidget(self.coords_label)
     
+    def _connect_signals(self):
+        """Connect signals and slots."""
+        # File browser signals
+        self.file_browser.file_selected.connect(self._on_file_selected)
+        self.file_browser.folder_changed.connect(self._on_folder_changed)
+        
+        # Image canvas signals
+        self.image_canvas.canvas.mouse_moved.connect(self._on_mouse_moved)
+        
+        logger.debug("Signals connected")
+    
+    def _on_file_selected(self, file_path: str):
+        """
+        Handle file selection from browser.
+        
+        Args:
+            file_path: Path to selected file
+        """
+        logger.info(f"File selected: {file_path}")
+        
+        # Load image using DataManager
+        image = self.data_manager.load_image(file_path)
+        
+        if image is not None:
+            # Display in canvas
+            self.image_canvas.load_image(image, file_path)
+            self.current_image_path = file_path
+            
+            # Update status bar
+            self.status_label.setText(f"Loaded: {file_path}")
+        else:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Failed to load image: {file_path}"
+            )
+    
+    def _on_folder_changed(self, folder_path: str):
+        """
+        Handle folder change in browser.
+        
+        Args:
+            folder_path: Path to new folder
+        """
+        logger.info(f"Folder changed: {folder_path}")
+        self.status_label.setText(f"Folder: {folder_path}")
+    
+    def _on_mouse_moved(self, x: int, y: int):
+        """
+        Handle mouse move on canvas.
+        
+        Args:
+            x: X coordinate
+            y: Y coordinate
+        """
+        self.coords_label.setText(f"Position: ({x}, {y})")
+    
     def _on_import(self):
         """Handle import action."""
-        QMessageBox.information(
-            self,
-            "Import",
-            "Import functionality will be implemented in Phase 2"
-        )
-        logger.info("Import action triggered")
+        dialog = ImportDialog(self)
+        
+        if dialog.exec_() == ImportDialog.Accepted:
+            imported_files = dialog.get_import_files()
+            
+            if imported_files:
+                logger.info(f"Imported {len(imported_files)} file(s)")
+                
+                # If importing a folder, set it in file browser
+                if dialog.import_type == "folder":
+                    self.file_browser.set_folder(imported_files[0] if len(imported_files) == 1 else dialog.import_source)
+                elif dialog.import_type == "files":
+                    # Load files into data manager
+                    self.data_manager.dataset['all'] = imported_files
+                    # Optionally set folder to parent of first file
+                    if imported_files:
+                        from pathlib import Path
+                        parent_folder = Path(imported_files[0]).parent
+                        self.file_browser.set_folder(str(parent_folder))
+                elif dialog.import_type == "video":
+                    # Extract video frames
+                    video_path = imported_files[0]
+                    video_options = dialog.get_video_options()
+                    
+                    from pathlib import Path
+                    output_dir = Path(self.paths_config['paths']['raw_data']) / "video_frames"
+                    
+                    QMessageBox.information(
+                        self,
+                        "Video Import",
+                        f"Extracting frames from video...\nThis may take a while."
+                    )
+                    
+                    frame_paths = self.data_manager.save_video_frames(
+                        video_path,
+                        output_dir,
+                        frame_interval=video_options['frame_interval'],
+                        max_frames=video_options['max_frames']
+                    )
+                    
+                    if frame_paths:
+                        self.file_browser.set_folder(str(output_dir))
+                        QMessageBox.information(
+                            self,
+                            "Success",
+                            f"Extracted {len(frame_paths)} frames"
+                        )
+                
+                self.status_label.setText(f"Imported {len(imported_files)} file(s)")
+        
+        logger.info("Import dialog closed")
     
     def _show_about(self):
         """Show about dialog."""
