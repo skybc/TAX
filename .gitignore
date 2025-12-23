@@ -1,0 +1,98 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# PyCharm
+.idea/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Logs
+logs/
+*.log
+
+# Data directories (keep structure but ignore content)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/splits/*
+!data/splits/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+
+# Model checkpoints (too large for git)
+models/checkpoints/*.pth
+models/checkpoints/*.pt
+!models/checkpoints/.gitkeep
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Generated reports
+*.pdf
+*.xlsx
+*.docx
+
+# ONNX models
+*.onnx
+
+# Compiled files
+*.pyc
+*.pyo

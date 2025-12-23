@@ -1,0 +1,32 @@
+# Path Configuration
+paths:
+  # Data directories
+  data_root: "data"
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  images: "data/processed/images"
+  masks: "data/processed/masks"
+  annotations: "data/processed/annotations"
+  
+  # Data splits
+  splits: "data/splits"
+  train_list: "data/splits/train.txt"
+  val_list: "data/splits/val.txt"
+  test_list: "data/splits/test.txt"
+  
+  # Output directories
+  outputs: "data/outputs"
+  predictions: "data/outputs/predictions"
+  reports: "data/outputs/reports"
+  trained_models: "data/outputs/models"
+  
+  # Model checkpoints
+  models: "models"
+  checkpoints: "models/checkpoints"
+  sam_checkpoint: "models/checkpoints/sam_vit_h.pth"
+  
+  # Logs
+  logs: "logs"
+  
+  # Temporary files
+  temp: "temp"
