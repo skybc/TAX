@@ -1,0 +1,50 @@
+# Application Configuration
+app:
+  name: "Industrial Defect Segmentation System"
+  version: "1.0.0-dev"
+  author: "Industrial AI Team"
+  
+# UI Settings
+ui:
+  window_width: 1600
+  window_height: 1000
+  canvas_bg_color: "#2b2b2b"
+  mask_opacity: 0.5
+  brush_size: 10
+  zoom_factor: 1.2
+  
+# Device Configuration
+device:
+  # Options: 'cuda', 'cpu', 'auto'
+  type: "auto"
+  # GPU device ID (for multi-GPU systems)
+  gpu_id: 0
+  
+# SAM Configuration
+sam:
+  # Model type: 'vit_h', 'vit_l', 'vit_b'
+  model_type: "vit_h"
+  # Model checkpoint path (relative to models/checkpoints/)
+  checkpoint: "sam_vit_h.pth"
+  # Points per side for automatic mask generation
+  points_per_side: 32
+  # Prediction IoU threshold
+  pred_iou_thresh: 0.88
+  # Stability score threshold
+  stability_score_thresh: 0.95
+  
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/app.log"
+  console: true
+  
+# Performance
+performance:
+  # Max image cache size (in MB)
+  max_cache_size: 2048
+  # Number of worker threads
+  num_workers: 4
+  # Prefetch factor for data loading
+  prefetch_factor: 2
