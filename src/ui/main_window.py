@@ -17,6 +17,10 @@ from src.core.data_manager import DataManager
 from src.ui.widgets.image_canvas import ImageCanvasWithInfo
 from src.ui.widgets.file_browser import FileBrowser
 from src.ui.dialogs.import_dialog import ImportDialog
+from src.ui.dialogs.export_dialog import ExportDialog
+from src.ui.dialogs.train_config_dialog import TrainConfigDialog
+from src.ui.dialogs.predict_dialog import PredictDialog
+from src.ui.dialogs.report_dialog import ReportDialog
 
 logger = get_logger(__name__)
 
@@ -166,14 +170,26 @@ class MainWindow(QMainWindow):
         
         train_action = QAction("&Train Model...", self)
         train_action.setStatusTip("Open model training dialog")
+        train_action.triggered.connect(self._on_train_model)
         tools_menu.addAction(train_action)
         
         predict_action = QAction("&Predict...", self)
         predict_action.setStatusTip("Run inference on images")
+        predict_action.triggered.connect(self._on_predict)
         tools_menu.addAction(predict_action)
+        
+        tools_menu.addSeparator()
+        
+        report_action = QAction("Generate &Report...", self)
+        report_action.setStatusTip("Generate analysis report")
+        report_action.triggered.connect(self._on_generate_report)
+        tools_menu.addAction(report_action)
+        
+        tools_menu.addSeparator()
         
         export_action = QAction("&Export Annotations...", self)
         export_action.setStatusTip("Export annotations to COCO/YOLO format")
+        export_action.triggered.connect(self._on_export)
         tools_menu.addAction(export_action)
         
         # Help menu
@@ -315,6 +331,154 @@ class MainWindow(QMainWindow):
                 self.status_label.setText(f"Imported {len(imported_files)} file(s)")
         
         logger.info("Import dialog closed")
+    
+    def _on_export(self):
+        """Handle export action."""
+        # Check if we have any annotated data
+        if not self.data_manager.dataset.get('all'):
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No images loaded. Please import images first."
+            )
+            return
+        
+        # For now, use dummy mask paths (in real usage, these come from AnnotationManager)
+        # TODO: Get actual mask paths from annotation manager
+        image_paths = self.data_manager.dataset.get('all', [])
+        
+        if not image_paths:
+            QMessageBox.warning(
+                self,
+                "No Images",
+                "No images available for export."
+            )
+            return
+        
+        # Create dummy mask paths for demonstration
+        # In real usage: mask_paths = [annotation_manager.get_mask_path(img) for img in image_paths]
+        from pathlib import Path
+        masks_dir = Path(self.paths_config['paths']['masks'])
+        mask_paths = []
+        
+        for img_path in image_paths:
+            mask_name = Path(img_path).stem + ".png"
+            mask_path = masks_dir / mask_name
+            if mask_path.exists():
+                mask_paths.append(str(mask_path))
+        
+        if not mask_paths:
+            QMessageBox.information(
+                self,
+                "No Annotations",
+                f"No annotation masks found in {masks_dir}.\n\n"
+                "Please annotate some images first before exporting."
+            )
+            return
+        
+        # Match image and mask lists
+        matched_images = []
+        matched_masks = []
+        
+        for img_path in image_paths:
+            img_name = Path(img_path).stem
+            for mask_path in mask_paths:
+                if Path(mask_path).stem == img_name:
+                    matched_images.append(img_path)
+                    matched_masks.append(mask_path)
+                    break
+        
+        if not matched_images:
+            QMessageBox.warning(
+                self,
+                "No Matching Pairs",
+                "No matching image-mask pairs found."
+            )
+            return
+        
+        # Open export dialog
+        dialog = ExportDialog(matched_images, matched_masks, self)
+        dialog.exec_()
+        
+        logger.info("Export dialog closed")
+    
+    def _on_train_model(self):
+        """Handle train model action."""
+        # Check if we have data
+        if not self.data_manager.dataset.get('all'):
+            reply = QMessageBox.question(
+                self,
+                "No Data",
+                "No images loaded. Training requires prepared data with images and masks.\n\n"
+                "Do you want to continue anyway? (You can configure paths in the training dialog)",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.No:
+                return
+        
+        # Open training dialog
+        dialog = TrainConfigDialog(self.config, self.paths_config, self)
+        dialog.exec_()
+        
+        logger.info("Training dialog closed")
+    
+    def _on_predict(self):
+        """Handle predict action."""
+        # Check if we have trained models
+        from pathlib import Path
+        models_dir = Path(self.paths_config['paths']['trained_models'])
+        
+        if not models_dir.exists() or not any(models_dir.glob('*.pth')):
+            reply = QMessageBox.question(
+                self,
+                "No Models",
+                "No trained models found. Prediction requires a trained model checkpoint.\n\n"
+                "Do you want to continue anyway? (You can specify checkpoint path in the dialog)",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.No:
+                return
+        
+        # Open prediction dialog
+        dialog = PredictDialog(self.config, self.paths_config, self)
+        dialog.exec_()
+        
+        logger.info("Prediction dialog closed")
+    
+    def _on_generate_report(self):
+        """Handle generate report action."""
+        # Check if we have data to analyze
+        from pathlib import Path
+        masks_dir = Path(self.paths_config['paths']['masks'])
+        
+        # Check for masks or predictions
+        has_masks = masks_dir.exists() and any(masks_dir.glob('*.png'))
+        
+        predictions_dir = Path(self.paths_config['paths']['predictions'])
+        has_predictions = predictions_dir.exists() and any(
+            (predictions_dir / 'masks').glob('*.png') if (predictions_dir / 'masks').exists() else []
+        )
+        
+        if not has_masks and not has_predictions:
+            reply = QMessageBox.question(
+                self,
+                "No Data",
+                "No mask files or predictions found.\n\n"
+                "Report generation requires mask files for analysis.\n\n"
+                "Do you want to continue anyway? (You can specify mask directory in the dialog)",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.No:
+                return
+        
+        # Open report dialog
+        dialog = ReportDialog(self.config, self.paths_config, self)
+        dialog.exec_()
+        
+        logger.info("Report dialog closed")
     
     def _show_about(self):
         """Show about dialog."""
