@@ -1,11 +1,11 @@
 """
-Unit tests for DataManager.
+DataManager 的单元测试。
 
-Tests:
-- Image loading and caching
-- Video frame extraction
-- Dataset organization
-- Split creation
+测试内容：
+- 图像加载和缓存
+- 视频帧提取
+- 数据集组织
+- 划分创建
 """
 
 import pytest
@@ -16,31 +16,31 @@ from src.core.data_manager import DataManager
 
 
 class TestDataManagerInit:
-    """Tests for DataManager initialization."""
+    """DataManager 初始化测试。"""
     
     @pytest.mark.unit
     def test_init_default(self, temp_dir):
-        """Test DataManager initialization with defaults."""
+        """测试使用默认值初始化 DataManager。"""
         dm = DataManager(str(temp_dir))
         
         assert dm.data_root == str(temp_dir)
-        assert dm.cache_size_mb == 1024  # Default
+        assert dm.cache_size_mb == 1024  # 默认值
         assert isinstance(dm.dataset, dict)
         assert 'all' in dm.dataset
     
     @pytest.mark.unit
     def test_init_custom_cache_size(self, temp_dir):
-        """Test DataManager with custom cache size."""
+        """测试使用自定义缓存大小初始化 DataManager。"""
         dm = DataManager(str(temp_dir), cache_size_mb=512)
         assert dm.cache_size_mb == 512
 
 
 class TestImageLoading:
-    """Tests for image loading operations."""
+    """图像加载操作测试。"""
     
     @pytest.mark.unit
     def test_load_image_success(self, create_test_images):
-        """Test successful image loading."""
+        """测试成功加载图像。"""
         image_paths = create_test_images(count=1)
         image_path = image_paths[0]
         
@@ -54,7 +54,7 @@ class TestImageLoading:
     
     @pytest.mark.unit
     def test_load_image_nonexistent(self, temp_dir):
-        """Test loading non-existent image."""
+        """测试加载不存在的图像。"""
         dm = DataManager(str(temp_dir))
         image = dm.load_image("nonexistent_image.png")
         
@@ -62,28 +62,28 @@ class TestImageLoading:
     
     @pytest.mark.unit
     def test_load_image_caching(self, create_test_images, temp_dir):
-        """Test image caching mechanism."""
+        """测试图像缓存机制。"""
         image_paths = create_test_images(count=1)
         image_path = image_paths[0]
         
         dm = DataManager(str(temp_dir))
         
-        # Load image first time
+        # 第一次加载图像
         image1 = dm.load_image(image_path)
         cache_size_1 = dm.get_cache_size()
         
-        # Load same image again
+        # 再次加载同一张图像
         image2 = dm.load_image(image_path)
         cache_size_2 = dm.get_cache_size()
         
-        # Should return same image from cache
+        # 应该从缓存返回相同的图像
         assert np.array_equal(image1, image2)
-        # Cache size should not increase
+        # 缓存大小不应增加
         assert cache_size_1 == cache_size_2
     
     @pytest.mark.unit
     def test_load_batch_images(self, create_test_images, temp_dir):
-        """Test loading batch of images."""
+        """测试批量加载图像。"""
         image_paths = create_test_images(count=5)
         
         dm = DataManager(str(temp_dir))
@@ -96,38 +96,38 @@ class TestImageLoading:
 
 
 class TestVideoProcessing:
-    """Tests for video frame extraction."""
+    """视频帧提取测试。"""
     
     @pytest.mark.unit
     @pytest.mark.slow
     def test_load_video_frames(self, temp_dir):
-        """Test video frame extraction."""
-        # Create a simple test video
+        """测试视频帧提取。"""
+        # 创建一个简单的测试视频
         import cv2
         video_path = temp_dir / "test_video.mp4"
         
-        # Create video writer
+        # 创建视频写入器
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(str(video_path), fourcc, 30.0, (640, 480))
         
-        # Write 30 frames
+        # 写入 30 帧
         for i in range(30):
             frame = np.random.randint(0, 256, (480, 640, 3), dtype=np.uint8)
             out.write(frame)
         
         out.release()
         
-        # Extract frames
+        # 提取帧
         dm = DataManager(str(temp_dir))
         frames = dm.load_video(str(video_path), frame_interval=5)
         
         assert len(frames) > 0
-        assert len(frames) <= 6  # 30 frames / 5 interval = 6 frames
+        assert len(frames) <= 6  # 30 帧 / 5 间隔 = 6 帧
     
     @pytest.mark.unit
     def test_save_video_frames(self, temp_dir):
-        """Test saving video frames to disk."""
-        # Create dummy frames
+        """测试将视频帧保存到磁盘。"""
+        # 创建虚拟帧
         import cv2
         video_path = temp_dir / "test_video2.mp4"
         
@@ -140,7 +140,7 @@ class TestVideoProcessing:
         
         out.release()
         
-        # Save frames
+        # 保存帧
         dm = DataManager(str(temp_dir))
         output_dir = temp_dir / "video_frames"
         frame_paths = dm.save_video_frames(str(video_path), output_dir, frame_interval=3)
@@ -152,11 +152,11 @@ class TestVideoProcessing:
 
 
 class TestDatasetOrganization:
-    """Tests for dataset organization."""
+    """数据集组织测试。"""
     
     @pytest.mark.unit
     def test_add_to_dataset(self, create_test_images, temp_dir):
-        """Test adding images to dataset."""
+        """测试向数据集添加图像。"""
         image_paths = create_test_images(count=10)
         
         dm = DataManager(str(temp_dir))
@@ -166,37 +166,37 @@ class TestDatasetOrganization:
     
     @pytest.mark.unit
     def test_create_splits(self, create_test_images, temp_dir):
-        """Test creating train/val/test splits."""
+        """测试创建训练/验证/测试划分。"""
         image_paths = create_test_images(count=100)
         
         dm = DataManager(str(temp_dir))
         dm.dataset['all'] = image_paths
         
-        # Create splits
+        # 创建划分
         splits = dm.create_splits(train_ratio=0.7, val_ratio=0.15, test_ratio=0.15)
         
         assert 'train' in splits
         assert 'val' in splits
         assert 'test' in splits
         
-        # Check split sizes
+        # 检查划分大小
         total = len(splits['train']) + len(splits['val']) + len(splits['test'])
         assert total == 100
         
-        # Check approximate ratios
+        # 检查大致比例
         assert 65 <= len(splits['train']) <= 75  # ~70%
         assert 10 <= len(splits['val']) <= 20    # ~15%
         assert 10 <= len(splits['test']) <= 20   # ~15%
     
     @pytest.mark.unit
     def test_save_load_splits(self, create_test_images, temp_dir):
-        """Test saving and loading split lists."""
+        """测试保存和加载划分列表。"""
         image_paths = create_test_images(count=30)
         
         dm = DataManager(str(temp_dir))
         dm.dataset['all'] = image_paths
         
-        # Create and save splits
+        # 创建并保存划分
         splits = dm.create_splits(train_ratio=0.6, val_ratio=0.2, test_ratio=0.2)
         
         splits_dir = temp_dir / "splits"
@@ -204,12 +204,12 @@ class TestDatasetOrganization:
         
         dm.save_splits(splits, str(splits_dir))
         
-        # Check files exist
+        # 检查文件是否存在
         assert (splits_dir / "train.txt").exists()
         assert (splits_dir / "val.txt").exists()
         assert (splits_dir / "test.txt").exists()
         
-        # Load splits
+        # 加载划分
         loaded_splits = dm.load_splits(str(splits_dir))
         
         assert len(loaded_splits['train']) == len(splits['train'])
@@ -218,23 +218,23 @@ class TestDatasetOrganization:
 
 
 class TestCacheManagement:
-    """Tests for cache management."""
+    """缓存管理测试。"""
     
     @pytest.mark.unit
     def test_clear_cache(self, create_test_images, temp_dir):
-        """Test clearing image cache."""
+        """测试清除图像缓存。"""
         image_paths = create_test_images(count=5)
         
         dm = DataManager(str(temp_dir), cache_size_mb=10)
         
-        # Load images to fill cache
+        # 加载图像以填充缓存
         for image_path in image_paths:
             dm.load_image(image_path)
         
         cache_size_before = dm.get_cache_size()
         assert cache_size_before > 0
         
-        # Clear cache
+        # 清除缓存
         dm.clear_cache()
         cache_size_after = dm.get_cache_size()
         
@@ -242,19 +242,19 @@ class TestCacheManagement:
     
     @pytest.mark.unit
     def test_cache_eviction(self, create_test_images, temp_dir):
-        """Test LRU cache eviction."""
-        # Create many images to exceed cache
+        """测试 LRU 缓存淘汰。"""
+        # 创建多张图像以超过缓存限制
         image_paths = create_test_images(count=50)
         
-        dm = DataManager(str(temp_dir), cache_size_mb=5)  # Small cache
+        dm = DataManager(str(temp_dir), cache_size_mb=5)  # 小缓存
         
-        # Load all images
+        # 加载所有图像
         for image_path in image_paths:
             dm.load_image(image_path)
         
-        # Cache should not exceed limit (approximately)
+        # 缓存不应超过限制（大致）
         cache_size_mb = dm.get_cache_size()
-        assert cache_size_mb <= 10  # Allow some overhead
+        assert cache_size_mb <= 10  # 允许一些开销
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 """
-Loss functions for segmentation training.
+用于分割训练的损失函数。
 
-This module provides:
-- Dice Loss
-- Binary Cross Entropy Loss
-- Focal Loss
-- Combined losses
+此模块提供：
+- Dice 损失
+- 二元交叉熵 (BCE) 损失
+- Focal 损失
+- 组合损失
 """
 
 import torch
@@ -20,34 +20,34 @@ logger = get_logger(__name__)
 
 class DiceLoss(nn.Module):
     """
-    Dice Loss for segmentation.
+    用于分割的 Dice 损失。
     
-    Dice coefficient: 2 * |A ∩ B| / (|A| + |B|)
-    Dice loss: 1 - Dice coefficient
+    Dice 系数: 2 * |A ∩ B| / (|A| + |B|)
+    Dice 损失: 1 - Dice 系数
     """
     
     def __init__(self, smooth: float = 1.0):
         """
-        Initialize Dice Loss.
+        初始化 Dice 损失。
         
-        Args:
-            smooth: Smoothing factor to avoid division by zero
+        参数:
+            smooth: 用于避免除以零的平滑因子
         """
         super().__init__()
         self.smooth = smooth
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
-        Compute Dice Loss.
+        计算 Dice 损失。
         
-        Args:
-            pred: Predicted masks (B, C, H, W)
-            target: Ground truth masks (B, C, H, W)
+        参数:
+            pred: 预测掩码 (B, C, H, W)
+            target: 真值掩码 (B, C, H, W)
             
-        Returns:
-            Dice loss value
+        返回:
+            Dice 损失值
         """
-        # Flatten tensors
+        # 展平张量
         pred = pred.contiguous().view(-1)
         target = target.contiguous().view(-1)
         
@@ -59,18 +59,18 @@ class DiceLoss(nn.Module):
 
 class FocalLoss(nn.Module):
     """
-    Focal Loss for addressing class imbalance.
+    用于解决类别不平衡问题的 Focal 损失。
     
-    Paper: https://arxiv.org/abs/1708.02002
+    论文: https://arxiv.org/abs/1708.02002
     """
     
     def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
         """
-        Initialize Focal Loss.
+        初始化 Focal 损失。
         
-        Args:
-            alpha: Weighting factor in range (0,1) to balance positive/negative examples
-            gamma: Exponent of the modulating factor (1 - p_t)
+        参数:
+            alpha: 范围在 (0,1) 内的加权因子，用于平衡正/负样本
+            gamma: 调制因子 (1 - p_t) 的指数
         """
         super().__init__()
         self.alpha = alpha
@@ -78,19 +78,19 @@ class FocalLoss(nn.Module):
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
-        Compute Focal Loss.
+        计算 Focal 损失。
         
-        Args:
-            pred: Predicted probabilities (B, C, H, W)
-            target: Ground truth masks (B, C, H, W)
+        参数:
+            pred: 预测概率 (B, C, H, W)
+            target: 真值掩码 (B, C, H, W)
             
-        Returns:
-            Focal loss value
+        返回:
+            Focal 损失值
         """
-        # Clip predictions to prevent log(0)
+        # 限制预测值以防止 log(0)
         pred = torch.clamp(pred, min=1e-7, max=1 - 1e-7)
         
-        # Compute focal loss
+        # 计算 focal 损失
         bce_loss = F.binary_cross_entropy(pred, target, reduction='none')
         p_t = pred * target + (1 - pred) * (1 - target)
         focal_weight = (1 - p_t) ** self.gamma
@@ -106,7 +106,7 @@ class FocalLoss(nn.Module):
 
 class CombinedLoss(nn.Module):
     """
-    Combined loss: weighted sum of multiple losses.
+    组合损失：多个损失函数的加权和。
     """
     
     def __init__(self,
@@ -114,12 +114,12 @@ class CombinedLoss(nn.Module):
                  bce_weight: float = 0.5,
                  focal_weight: float = 0.0):
         """
-        Initialize Combined Loss.
+        初始化组合损失。
         
-        Args:
-            dice_weight: Weight for Dice loss
-            bce_weight: Weight for BCE loss
-            focal_weight: Weight for Focal loss
+        参数:
+            dice_weight: Dice 损失的权重
+            bce_weight: BCE 损失的权重
+            focal_weight: Focal 损失的权重
         """
         super().__init__()
         self.dice_weight = dice_weight
@@ -130,18 +130,18 @@ class CombinedLoss(nn.Module):
         self.bce_loss = nn.BCELoss()
         self.focal_loss = FocalLoss()
         
-        logger.info(f"Combined loss: Dice={dice_weight}, BCE={bce_weight}, Focal={focal_weight}")
+        logger.info(f"组合损失: Dice={dice_weight}, BCE={bce_weight}, Focal={focal_weight}")
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
-        Compute combined loss.
+        计算组合损失。
         
-        Args:
-            pred: Predicted masks (B, C, H, W)
-            target: Ground truth masks (B, C, H, W)
+        参数:
+            pred: 预测掩码 (B, C, H, W)
+            target: 真值掩码 (B, C, H, W)
             
-        Returns:
-            Combined loss value
+        返回:
+            组合损失值
         """
         loss = 0.0
         
@@ -159,31 +159,31 @@ class CombinedLoss(nn.Module):
 
 class IoULoss(nn.Module):
     """
-    IoU (Intersection over Union) Loss.
+    IoU (交并比) 损失。
     """
     
     def __init__(self, smooth: float = 1.0):
         """
-        Initialize IoU Loss.
+        初始化 IoU 损失。
         
-        Args:
-            smooth: Smoothing factor
+        参数:
+            smooth: 平滑因子
         """
         super().__init__()
         self.smooth = smooth
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
-        Compute IoU Loss.
+        计算 IoU 损失。
         
-        Args:
-            pred: Predicted masks (B, C, H, W)
-            target: Ground truth masks (B, C, H, W)
+        参数:
+            pred: 预测掩码 (B, C, H, W)
+            target: 真值掩码 (B, C, H, W)
             
-        Returns:
-            IoU loss value
+        返回:
+            IoU 损失值
         """
-        # Flatten tensors
+        # 展平张量
         pred = pred.contiguous().view(-1)
         target = target.contiguous().view(-1)
         
@@ -197,17 +197,17 @@ class IoULoss(nn.Module):
 
 def get_loss_function(loss_name: str, **kwargs) -> nn.Module:
     """
-    Get loss function by name.
+    通过名称获取损失函数。
     
-    Args:
-        loss_name: Loss function name ('dice', 'bce', 'focal', 'combined', 'iou')
-        **kwargs: Additional arguments for loss function
+    参数:
+        loss_name: 损失函数名称 ('dice', 'bce', 'focal', 'combined', 'iou')
+        **kwargs: 损失函数的附加参数
         
-    Returns:
-        Loss function module
+    返回:
+        损失函数模块
         
-    Raises:
-        ValueError: If loss name is not supported
+    抛出:
+        ValueError: 如果损失函数名称不受支持
     """
     loss_name = loss_name.lower()
     
@@ -222,4 +222,4 @@ def get_loss_function(loss_name: str, **kwargs) -> nn.Module:
     elif loss_name == 'iou':
         return IoULoss(**kwargs)
     else:
-        raise ValueError(f"Unsupported loss function: {loss_name}")
+        raise ValueError(f"不支持的损失函数: {loss_name}")

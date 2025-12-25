@@ -1,11 +1,11 @@
 """
-Export utilities for annotation data.
+标注数据的导出实用程序。
 
-This module provides:
-- COCO format dataset export
-- YOLO format dataset export
-- VOC/Pascal format dataset export
-- Dataset conversion utilities
+此模块提供：
+- COCO 格式数据集导出
+- YOLO 格式数据集导出
+- VOC/Pascal 格式数据集导出
+- 数据集转换实用程序
 """
 
 import json
@@ -24,9 +24,9 @@ logger = get_logger(__name__)
 
 class COCOExporter:
     """
-    Export annotations to COCO JSON format.
+    将标注导出为 COCO JSON 格式。
     
-    COCO format structure:
+    COCO 格式结构：
     {
         "info": {...},
         "licenses": [...],
@@ -37,34 +37,34 @@ class COCOExporter:
     """
     
     def __init__(self, 
-                 dataset_name: str = "Industrial Defect Dataset",
-                 description: str = "Dataset for industrial defect segmentation",
+                 dataset_name: str = "工业缺陷数据集",
+                 description: str = "用于工业缺陷分割的数据集",
                  version: str = "1.0"):
         """
-        Initialize COCO exporter.
+        初始化 COCO 导出器。
         
-        Args:
-            dataset_name: Name of the dataset
-            description: Dataset description
-            version: Dataset version
+        参数:
+            dataset_name: 数据集名称
+            description: 数据集描述
+            version: 数据集版本
         """
         self.dataset_name = dataset_name
         self.description = description
         self.version = version
         
-        # Initialize COCO structure
+        # 初始化 COCO 结构
         self.coco_data = {
             "info": {
                 "description": description,
                 "version": version,
                 "year": datetime.now().year,
-                "contributor": "Industrial AI Team",
+                "contributor": "工业 AI 团队",
                 "date_created": datetime.now().isoformat()
             },
             "licenses": [
                 {
                     "id": 1,
-                    "name": "Custom License",
+                    "name": "自定义许可证",
                     "url": ""
                 }
             ],
@@ -75,18 +75,18 @@ class COCOExporter:
         
         self.image_id_counter = 1
         self.annotation_id_counter = 1
-        self.category_dict = {}  # category_name -> category_id
+        self.category_dict = {}  # 类别名称 -> 类别 ID
     
     def add_category(self, category_name: str, supercategory: str = "defect") -> int:
         """
-        Add a category to the dataset.
+        向数据集添加类别。
         
-        Args:
-            category_name: Name of the category
-            supercategory: Parent category name
+        参数:
+            category_name: 类别名称
+            supercategory: 父类别名称
             
-        Returns:
-            Category ID
+        返回:
+            类别 ID
         """
         if category_name in self.category_dict:
             return self.category_dict[category_name]
@@ -100,7 +100,7 @@ class COCOExporter:
             "supercategory": supercategory
         })
         
-        logger.debug(f"Added category: {category_name} (id={category_id})")
+        logger.debug(f"已添加类别: {category_name} (id={category_id})")
         return category_id
     
     def add_image(self, 
@@ -109,16 +109,16 @@ class COCOExporter:
                   height: int,
                   image_id: Optional[int] = None) -> int:
         """
-        Add an image to the dataset.
+        向数据集添加图像。
         
-        Args:
-            image_path: Path to the image file
-            width: Image width
-            height: Image height
-            image_id: Optional custom image ID
+        参数:
+            image_path: 图像文件路径
+            width: 图像宽度
+            height: 图像高度
+            image_id: 可选的自定义图像 ID
             
-        Returns:
-            Image ID
+        返回:
+            图像 ID
         """
         if image_id is None:
             image_id = self.image_id_counter
@@ -135,7 +135,7 @@ class COCOExporter:
             "date_captured": datetime.now().isoformat()
         })
         
-        logger.debug(f"Added image: {image_filename} (id={image_id})")
+        logger.debug(f"已添加图像: {image_filename} (id={image_id})")
         return image_id
     
     def add_annotation(self,
@@ -144,31 +144,31 @@ class COCOExporter:
                        mask: np.ndarray,
                        annotation_id: Optional[int] = None) -> int:
         """
-        Add an annotation to the dataset.
+        向数据集添加标注。
         
-        Args:
-            image_id: ID of the image
-            category_id: ID of the category
-            mask: Binary mask (H, W)
-            annotation_id: Optional custom annotation ID
+        参数:
+            image_id: 图像 ID
+            category_id: 类别 ID
+            mask: 二值掩码 (H, W)
+            annotation_id: 可选的自定义标注 ID
             
-        Returns:
-            Annotation ID
+        返回:
+            标注 ID
         """
         if annotation_id is None:
             annotation_id = self.annotation_id_counter
             self.annotation_id_counter += 1
         
-        # Get bbox
+        # 获取边界框
         bbox = mask_to_bbox(mask)
         if bbox is None:
-            logger.warning(f"Empty mask for annotation {annotation_id}, skipping")
+            logger.warning(f"标注 {annotation_id} 的掩码为空，正在跳过")
             return annotation_id
         
-        # Get RLE segmentation
+        # 获取 RLE 分割
         rle = binary_mask_to_rle(mask)
         
-        # Calculate area
+        # 计算面积
         area = int(np.sum(mask > 0))
         
         annotation = {
@@ -182,29 +182,29 @@ class COCOExporter:
         }
         
         self.coco_data["annotations"].append(annotation)
-        logger.debug(f"Added annotation: id={annotation_id}, image_id={image_id}, area={area}")
+        logger.debug(f"已添加标注: id={annotation_id}, image_id={image_id}, area={area}")
         return annotation_id
     
     def save(self, output_path: str):
         """
-        Save COCO dataset to JSON file.
+        将 COCO 数据集保存到 JSON 文件。
         
-        Args:
-            output_path: Path to save JSON file
+        参数:
+            output_path: 保存 JSON 文件的路径
         """
         ensure_dir(Path(output_path).parent)
         save_json(self.coco_data, output_path, indent=2)
-        logger.info(f"Saved COCO dataset to: {output_path}")
-        logger.info(f"  Images: {len(self.coco_data['images'])}")
-        logger.info(f"  Annotations: {len(self.coco_data['annotations'])}")
-        logger.info(f"  Categories: {len(self.coco_data['categories'])}")
+        logger.info(f"已将 COCO 数据集保存到: {output_path}")
+        logger.info(f"  图像数: {len(self.coco_data['images'])}")
+        logger.info(f"  标注数: {len(self.coco_data['annotations'])}")
+        logger.info(f"  类别数: {len(self.coco_data['categories'])}")
     
     def get_statistics(self) -> Dict:
         """
-        Get dataset statistics.
+        获取数据集统计信息。
         
-        Returns:
-            Dictionary with statistics
+        返回:
+            包含统计信息的字典
         """
         stats = {
             "num_images": len(self.coco_data["images"]),
@@ -213,7 +213,7 @@ class COCOExporter:
             "category_names": [cat["name"] for cat in self.coco_data["categories"]]
         }
         
-        # Count annotations per category
+        # 计算每个类别的标注数
         category_counts = {}
         for ann in self.coco_data["annotations"]:
             cat_id = ann["category_id"]
@@ -226,36 +226,36 @@ class COCOExporter:
 
 class YOLOExporter:
     """
-    Export annotations to YOLO format.
+    将标注导出为 YOLO 格式。
     
-    YOLO format:
-    - One txt file per image
-    - Each line: class_id x1 y1 x2 y2 x3 y3 ... (normalized polygon coordinates)
-    - classes.txt file with class names
+    YOLO 格式：
+    - 每张图像一个 txt 文件
+    - 每行：class_id x1 y1 x2 y2 x3 y3 ...（归一化的多边形坐标）
+    - 包含类别名称的 classes.txt 文件
     """
     
     def __init__(self, output_dir: str, class_names: List[str]):
         """
-        Initialize YOLO exporter.
+        初始化 YOLO 导出器。
         
-        Args:
-            output_dir: Output directory for YOLO files
-            class_names: List of class names in order
+        参数:
+            output_dir: YOLO 文件的输出目录
+            class_names: 按顺序排列的类别名称列表
         """
         self.output_dir = Path(output_dir)
         self.class_names = class_names
         
-        # Create output directory
+        # 创建输出目录
         ensure_dir(self.output_dir)
         
-        # Save classes.txt
+        # 保存 classes.txt
         classes_file = self.output_dir / "classes.txt"
-        with open(classes_file, 'w') as f:
+        with open(classes_file, 'w', encoding='utf-8') as f:
             for class_name in class_names:
                 f.write(f"{class_name}\n")
         
-        logger.info(f"Created YOLO exporter: {output_dir}")
-        logger.info(f"Classes: {class_names}")
+        logger.info(f"已创建 YOLO 导出器: {output_dir}")
+        logger.info(f"类别: {class_names}")
     
     def export_annotation(self,
                          image_path: str,
@@ -264,14 +264,14 @@ class YOLOExporter:
                          image_width: int,
                          image_height: int):
         """
-        Export annotations for one image to YOLO format.
+        将一张图像的标注导出为 YOLO 格式。
         
-        Args:
-            image_path: Path to the image file
-            masks: List of binary masks
-            class_ids: List of class IDs (0-indexed)
-            image_width: Image width
-            image_height: Image height
+        参数:
+            image_path: 图像文件路径
+            masks: 二值掩码列表
+            class_ids: 类别 ID 列表（从 0 开始）
+            image_width: 图像宽度
+            image_height: 图像高度
         """
         image_name = Path(image_path).stem
         output_file = self.output_dir / f"{image_name}.txt"
@@ -279,45 +279,45 @@ class YOLOExporter:
         lines = []
         
         for mask, class_id in zip(masks, class_ids):
-            # Get polygons from mask
+            # 从掩码获取多边形
             polygons = mask_to_polygon(mask)
             
             if not polygons:
-                logger.warning(f"No polygons found in mask for {image_name}")
+                logger.warning(f"在 {image_name} 的掩码中未找到多边形")
                 continue
             
             for polygon in polygons:
-                if len(polygon) < 6:  # Need at least 3 points
+                if len(polygon) < 6:  # 至少需要 3 个点
                     continue
                 
-                # Normalize coordinates to [0, 1]
+                # 将坐标归一化到 [0, 1]
                 normalized_polygon = []
                 for i in range(0, len(polygon), 2):
                     x = polygon[i] / image_width
                     y = polygon[i + 1] / image_height
                     normalized_polygon.extend([x, y])
                 
-                # Format: class_id x1 y1 x2 y2 x3 y3 ...
+                # 格式: class_id x1 y1 x2 y2 x3 y3 ...
                 line = f"{class_id} " + " ".join([f"{coord:.6f}" for coord in normalized_polygon])
                 lines.append(line)
         
-        # Write to file
-        with open(output_file, 'w') as f:
+        # 写入文件
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write("\n".join(lines))
         
-        logger.debug(f"Exported YOLO annotation: {output_file} ({len(lines)} objects)")
+        logger.debug(f"已导出 YOLO 标注: {output_file} ({len(lines)} 个对象)")
     
     def create_data_yaml(self, 
                         train_path: str,
                         val_path: str,
                         test_path: Optional[str] = None):
         """
-        Create data.yaml for YOLO training.
+        为 YOLO 训练创建 data.yaml。
         
-        Args:
-            train_path: Path to training images directory
-            val_path: Path to validation images directory
-            test_path: Optional path to test images directory
+        参数:
+            train_path: 训练图像目录路径
+            val_path: 验证图像目录路径
+            test_path: 可选的测试图像目录路径
         """
         data_yaml = {
             'path': str(self.output_dir.absolute()),
@@ -331,8 +331,8 @@ class YOLOExporter:
         
         yaml_path = self.output_dir / "data.yaml"
         
-        # Write YAML manually (simple format)
-        with open(yaml_path, 'w') as f:
+        # 手动写入 YAML（简单格式）
+        with open(yaml_path, 'w', encoding='utf-8') as f:
             f.write(f"path: {data_yaml['path']}\n")
             f.write(f"train: {data_yaml['train']}\n")
             f.write(f"val: {data_yaml['val']}\n")
@@ -342,35 +342,35 @@ class YOLOExporter:
             for idx, name in data_yaml['names'].items():
                 f.write(f"  {idx}: {name}\n")
         
-        logger.info(f"Created data.yaml: {yaml_path}")
+        logger.info(f"已创建 data.yaml: {yaml_path}")
 
 
 class VOCExporter:
     """
-    Export annotations to Pascal VOC XML format.
+    将标注导出为 Pascal VOC XML 格式。
     
-    VOC format:
-    - One XML file per image
-    - Contains image info and bounding boxes
-    - Segmentation masks stored separately as PNG
+    VOC 格式：
+    - 每张图像一个 XML 文件
+    - 包含图像信息和边界框
+    - 分割掩码单独存储为 PNG
     """
     
     def __init__(self, output_dir: str):
         """
-        Initialize VOC exporter.
+        初始化 VOC 导出器。
         
-        Args:
-            output_dir: Output directory for VOC files
+        参数:
+            output_dir: VOC 文件的输出目录
         """
         self.output_dir = Path(output_dir)
         self.annotations_dir = self.output_dir / "Annotations"
         self.segmentation_dir = self.output_dir / "SegmentationClass"
         
-        # Create directories
+        # 创建目录
         ensure_dir(self.annotations_dir)
         ensure_dir(self.segmentation_dir)
         
-        logger.info(f"Created VOC exporter: {output_dir}")
+        logger.info(f"已创建 VOC 导出器: {output_dir}")
     
     def export_annotation(self,
                          image_path: str,
@@ -379,34 +379,34 @@ class VOCExporter:
                          image_width: int,
                          image_height: int):
         """
-        Export annotations for one image to VOC format.
+        将一张图像的标注导出为 VOC 格式。
         
-        Args:
-            image_path: Path to the image file
-            masks: List of binary masks
-            class_names: List of class names for each mask
-            image_width: Image width
-            image_height: Image height
+        参数:
+            image_path: 图像文件路径
+            masks: 二值掩码列表
+            class_names: 每个掩码的类别名称列表
+            image_width: 图像宽度
+            image_height: 图像高度
         """
         image_name = Path(image_path).stem
         
-        # Create XML annotation
+        # 创建 XML 标注
         annotation = ET.Element("annotation")
         
-        # Add folder
+        # 添加文件夹
         folder = ET.SubElement(annotation, "folder")
         folder.text = "VOC2012"
         
-        # Add filename
+        # 添加文件名
         filename = ET.SubElement(annotation, "filename")
         filename.text = Path(image_path).name
         
-        # Add source
+        # 添加来源
         source = ET.SubElement(annotation, "source")
         database = ET.SubElement(source, "database")
-        database.text = "Industrial Defect Dataset"
+        database.text = "工业缺陷数据集"
         
-        # Add size
+        # 添加尺寸
         size = ET.SubElement(annotation, "size")
         width_elem = ET.SubElement(size, "width")
         width_elem.text = str(image_width)
@@ -415,11 +415,11 @@ class VOCExporter:
         depth_elem = ET.SubElement(size, "depth")
         depth_elem.text = "3"
         
-        # Add segmented flag
+        # 添加分割标志
         segmented = ET.SubElement(annotation, "segmented")
         segmented.text = "1"
         
-        # Add objects
+        # 添加对象
         for mask, class_name in zip(masks, class_names):
             bbox = mask_to_bbox(mask)
             if bbox is None:
@@ -435,7 +435,7 @@ class VOCExporter:
             name_elem.text = class_name
             
             pose = ET.SubElement(obj, "pose")
-            pose.text = "Unspecified"
+            pose.text = "未指定"
             
             truncated = ET.SubElement(obj, "truncated")
             truncated.text = "0"
@@ -453,14 +453,14 @@ class VOCExporter:
             ymax_elem = ET.SubElement(bndbox, "ymax")
             ymax_elem.text = str(ymax)
         
-        # Write XML file
+        # 写入 XML 文件
         tree = ET.ElementTree(annotation)
         xml_path = self.annotations_dir / f"{image_name}.xml"
         tree.write(xml_path, encoding='utf-8', xml_declaration=True)
         
-        # Save segmentation mask
+        # 保存分割掩码
         if masks:
-            # Combine all masks into one image (each class with different pixel value)
+            # 将所有掩码合并为一张图像（每个类别具有不同的像素值）
             combined_mask = np.zeros((image_height, image_width), dtype=np.uint8)
             for i, mask in enumerate(masks, start=1):
                 combined_mask[mask > 0] = i
@@ -469,60 +469,60 @@ class VOCExporter:
             mask_path = self.segmentation_dir / f"{image_name}.png"
             save_mask(combined_mask, str(mask_path))
         
-        logger.debug(f"Exported VOC annotation: {xml_path}")
+        logger.debug(f"已导出 VOC 标注: {xml_path}")
 
 
 def batch_export_coco(image_paths: List[str],
                      mask_paths: List[str],
                      category_names: List[str],
                      output_path: str,
-                     dataset_name: str = "Industrial Defect Dataset") -> Dict:
+                     dataset_name: str = "工业缺陷数据集") -> Dict:
     """
-    Batch export annotations to COCO format.
+    批量将标注导出为 COCO 格式。
     
-    Args:
-        image_paths: List of image file paths
-        mask_paths: List of mask file paths (same order as images)
-        category_names: List of category names for each mask
-        output_path: Output JSON file path
-        dataset_name: Name of the dataset
+    参数:
+        image_paths: 图像文件路径列表
+        mask_paths: 掩码文件路径列表（与图像顺序相同）
+        category_names: 每个掩码的类别名称列表
+        output_path: 输出 JSON 文件路径
+        dataset_name: 数据集名称
         
-    Returns:
-        Export statistics
+    返回:
+        导出统计信息
     """
     exporter = COCOExporter(dataset_name=dataset_name)
     
-    # Add categories
+    # 添加类别
     unique_categories = list(set(category_names))
     for cat_name in unique_categories:
         exporter.add_category(cat_name)
     
-    # Process each image
+    # 处理每张图像
     from src.utils.image_utils import get_image_info
     from src.utils.mask_utils import load_mask
     
     for image_path, mask_path, category_name in zip(image_paths, mask_paths, category_names):
-        # Get image info
+        # 获取图像信息
         info = get_image_info(image_path)
         if info is None:
-            logger.warning(f"Failed to get info for: {image_path}")
+            logger.warning(f"获取信息失败: {image_path}")
             continue
         
         width, height = info['width'], info['height']
         
-        # Add image
+        # 添加图像
         image_id = exporter.add_image(image_path, width, height)
         
-        # Load and add mask
+        # 加载并添加掩码
         mask = load_mask(mask_path)
         if mask is None:
-            logger.warning(f"Failed to load mask: {mask_path}")
+            logger.warning(f"加载掩码失败: {mask_path}")
             continue
         
         category_id = exporter.category_dict[category_name]
         exporter.add_annotation(image_id, category_id, mask)
     
-    # Save
+    # 保存
     exporter.save(output_path)
     
     return exporter.get_statistics()
@@ -534,17 +534,17 @@ def batch_export_yolo(image_paths: List[str],
                      class_names: List[str],
                      output_dir: str) -> int:
     """
-    Batch export annotations to YOLO format.
+    批量将标注导出为 YOLO 格式。
     
-    Args:
-        image_paths: List of image file paths
-        mask_paths: List of mask file paths
-        class_ids: List of class IDs for each mask
-        class_names: List of all class names
-        output_dir: Output directory
+    参数:
+        image_paths: 图像文件路径列表
+        mask_paths: 掩码文件路径列表
+        class_ids: 每个掩码的类别 ID 列表
+        class_names: 所有类别名称列表
+        output_dir: 输出目录
         
-    Returns:
-        Number of exported annotations
+    返回:
+        导出的标注数量
     """
     exporter = YOLOExporter(output_dir, class_names)
     
@@ -554,19 +554,19 @@ def batch_export_yolo(image_paths: List[str],
     count = 0
     
     for image_path, mask_path, class_id in zip(image_paths, mask_paths, class_ids):
-        # Get image info
+        # 获取图像信息
         info = get_image_info(image_path)
         if info is None:
             continue
         
         width, height = info['width'], info['height']
         
-        # Load mask
+        # 加载掩码
         mask = load_mask(mask_path)
         if mask is None:
             continue
         
-        # Export
+        # 导出
         exporter.export_annotation(
             image_path,
             [mask],
@@ -576,5 +576,5 @@ def batch_export_yolo(image_paths: List[str],
         )
         count += 1
     
-    logger.info(f"Exported {count} YOLO annotations")
+    logger.info(f"已导出 {count} 个 YOLO 标注")
     return count

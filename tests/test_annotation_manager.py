@@ -1,11 +1,11 @@
 """
-Unit tests for AnnotationManager.
+AnnotationManager 的单元测试。
 
-Tests:
-- Mask creation and editing
-- Undo/redo functionality
-- Mask persistence
-- Export operations
+测试内容：
+- 掩码创建和编辑
+- 撤销/重做功能
+- 掩码持久化
+- 导出操作
 """
 
 import pytest
@@ -16,11 +16,11 @@ from src.core.annotation_manager import AnnotationManager
 
 
 class TestAnnotationManagerInit:
-    """Tests for AnnotationManager initialization."""
+    """AnnotationManager 初始化的测试。"""
     
     @pytest.mark.unit
     def test_init_default(self):
-        """Test AnnotationManager initialization."""
+        """测试 AnnotationManager 初始化。"""
         am = AnnotationManager(max_history=50)
         
         assert am.max_history == 50
@@ -30,7 +30,7 @@ class TestAnnotationManagerInit:
     
     @pytest.mark.unit
     def test_set_image(self, sample_image):
-        """Test setting image for annotation."""
+        """测试设置标注图像。"""
         am = AnnotationManager()
         am.set_image("test_image.png", sample_image.shape)
         
@@ -38,15 +38,15 @@ class TestAnnotationManagerInit:
         assert am.image_shape == sample_image.shape[:2]
         assert am.current_mask is not None
         assert am.current_mask.shape == sample_image.shape[:2]
-        assert np.all(am.current_mask == 0)  # Initially empty
+        assert np.all(am.current_mask == 0)  # 初始为空
 
 
 class TestMaskOperations:
-    """Tests for mask operations."""
+    """掩码操作的测试。"""
     
     @pytest.mark.unit
     def test_get_current_mask(self, sample_image):
-        """Test getting current mask."""
+        """测试获取当前掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
@@ -54,13 +54,13 @@ class TestMaskOperations:
         
         assert mask is not None
         assert mask.shape == sample_image.shape[:2]
-        # Should be a copy, not reference
+        # 应该是副本，而不是引用
         mask[0, 0] = 255
         assert am.current_mask[0, 0] == 0
     
     @pytest.mark.unit
     def test_set_mask(self, sample_image, sample_mask):
-        """Test setting mask."""
+        """测试设置掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
@@ -71,7 +71,7 @@ class TestMaskOperations:
     
     @pytest.mark.unit
     def test_update_mask_replace(self, sample_image, sample_mask):
-        """Test updating mask with replace operation."""
+        """测试使用替换操作更新掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
@@ -82,11 +82,11 @@ class TestMaskOperations:
     
     @pytest.mark.unit
     def test_update_mask_add(self, sample_image):
-        """Test updating mask with add operation."""
+        """测试使用添加操作更新掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Create two non-overlapping masks
+        # 创建两个不重叠的掩码
         mask1 = np.zeros(sample_image.shape[:2], dtype=np.uint8)
         mask1[50:100, 50:100] = 255
         
@@ -97,32 +97,32 @@ class TestMaskOperations:
         am.update_mask(mask2, operation='add')
         
         current_mask = am.get_current_mask()
-        # Both regions should be filled
+        # 两个区域都应该被填充
         assert np.all(current_mask[50:100, 50:100] == 255)
         assert np.all(current_mask[150:200, 150:200] == 255)
     
     @pytest.mark.unit
     def test_update_mask_subtract(self, sample_image, sample_mask):
-        """Test updating mask with subtract operation."""
+        """测试使用减法操作更新掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Set initial mask
+        # 设置初始掩码
         am.update_mask(sample_mask, operation='replace')
         
-        # Subtract a portion
+        # 减去一部分
         subtract_mask = np.zeros(sample_image.shape[:2], dtype=np.uint8)
         subtract_mask[60:90, 60:90] = 255
         
         am.update_mask(subtract_mask, operation='subtract')
         
         current_mask = am.get_current_mask()
-        # Subtracted region should be empty
+        # 减去的区域应该为空
         assert np.all(current_mask[60:90, 60:90] == 0)
     
     @pytest.mark.unit
     def test_clear_mask(self, sample_image, sample_mask):
-        """Test clearing mask."""
+        """测试清除掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         am.set_mask(sample_mask)
@@ -134,60 +134,60 @@ class TestMaskOperations:
 
 
 class TestPaintingOperations:
-    """Tests for painting operations."""
+    """绘制操作的测试。"""
     
     @pytest.mark.unit
     def test_paint_mask(self, sample_image):
-        """Test painting mask with brush."""
+        """测试使用画笔绘制掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Paint some points
+        # 绘制一些点
         points = [(100, 100), (101, 100), (102, 100)]
         am.paint_mask(points, brush_size=5, value=255, operation='paint')
         
         current_mask = am.get_current_mask()
-        # Check that points were painted
+        # 检查点是否已绘制
         assert current_mask[100, 100] == 255
     
     @pytest.mark.unit
     def test_erase_mask(self, sample_image, sample_mask):
-        """Test erasing mask."""
+        """测试擦除掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         am.set_mask(sample_mask)
         
-        # Erase some points
+        # 擦除一些点
         points = [(60, 60), (61, 60), (62, 60)]
         am.paint_mask(points, brush_size=10, operation='erase')
         
         current_mask = am.get_current_mask()
-        # Erased region should be cleared
+        # 擦除的区域应该被清除
         assert current_mask[60, 60] == 0
     
     @pytest.mark.unit
     def test_paint_polygon(self, sample_image):
-        """Test painting filled polygon."""
+        """测试绘制填充多边形。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Draw triangle
+        # 绘制三角形
         points = [(100, 100), (150, 100), (125, 150)]
         am.paint_polygon(points, value=255)
         
         current_mask = am.get_current_mask()
-        # Check that polygon is filled
+        # 检查多边形是否已填充
         assert np.sum(current_mask > 0) > 0
     
     @pytest.mark.unit
     def test_finish_paint_stroke(self, sample_image):
-        """Test finishing paint stroke saves state."""
+        """测试完成绘制笔触会保存状态。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
         history_len_before = len(am.history)
         
-        # Paint and finish stroke
+        # 绘制并完成笔触
         points = [(100, 100)]
         am.paint_mask(points, brush_size=5, value=255)
         am.finish_paint_stroke()
@@ -197,21 +197,21 @@ class TestPaintingOperations:
 
 
 class TestUndoRedo:
-    """Tests for undo/redo functionality."""
+    """撤销/重做功能的测试。"""
     
     @pytest.mark.unit
     def test_undo(self, sample_image, sample_mask):
-        """Test undo operation."""
+        """测试撤销操作。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Initial state (empty)
+        # 初始状态（为空）
         initial_mask = am.get_current_mask().copy()
         
-        # Make a change
+        # 进行更改
         am.set_mask(sample_mask)
         
-        # Undo
+        # 撤销
         success = am.undo()
         
         assert success is True
@@ -220,30 +220,30 @@ class TestUndoRedo:
     
     @pytest.mark.unit
     def test_undo_limit(self, sample_image):
-        """Test undo at beginning of history."""
+        """测试在历史记录开头撤销。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Try to undo at start
+        # 尝试在开始时撤销
         success = am.undo()
         
-        # Should not be able to undo initial state
+        # 不应该能够撤销初始状态
         assert success is False
     
     @pytest.mark.unit
     def test_redo(self, sample_image, sample_mask):
-        """Test redo operation."""
+        """测试重做操作。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Make a change
+        # 进行更改
         am.set_mask(sample_mask)
         changed_mask = am.get_current_mask().copy()
         
-        # Undo
+        # 撤销
         am.undo()
         
-        # Redo
+        # 重做
         success = am.redo()
         
         assert success is True
@@ -252,46 +252,46 @@ class TestUndoRedo:
     
     @pytest.mark.unit
     def test_redo_limit(self, sample_image):
-        """Test redo at end of history."""
+        """测试在历史记录末尾重做。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Try to redo without undo
+        # 尝试在没有撤销的情况下重做
         success = am.redo()
         
         assert success is False
     
     @pytest.mark.unit
     def test_can_undo_redo(self, sample_image, sample_mask):
-        """Test undo/redo availability checks."""
+        """测试撤销/重做可用性检查。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         
-        # Initially can't undo (only one state)
+        # 初始不能撤销（只有一个状态）
         assert am.can_undo() is False
         assert am.can_redo() is False
         
-        # Make a change
+        # 进行更改
         am.set_mask(sample_mask)
         
-        # Now can undo
+        # 现在可以撤销
         assert am.can_undo() is True
         assert am.can_redo() is False
         
-        # Undo
+        # 撤销
         am.undo()
         
-        # Now can redo
+        # 现在可以重做
         assert am.can_undo() is False
         assert am.can_redo() is True
 
 
 class TestMaskPersistence:
-    """Tests for mask save/load operations."""
+    """掩码保存/加载操作的测试。"""
     
     @pytest.mark.unit
     def test_save_mask(self, sample_image, sample_mask, temp_output_dir):
-        """Test saving mask."""
+        """测试保存掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         am.set_mask(sample_mask)
@@ -304,13 +304,13 @@ class TestMaskPersistence:
     
     @pytest.mark.unit
     def test_load_mask(self, sample_image, sample_mask, temp_output_dir):
-        """Test loading mask."""
-        # First save a mask
+        """测试加载掩码。"""
+        # 首先保存一个掩码
         from src.utils.mask_utils import save_mask
         mask_path = temp_output_dir / "test_mask.png"
         save_mask(sample_mask, str(mask_path))
         
-        # Load mask
+        # 加载掩码
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         success = am.load_mask(str(mask_path))
@@ -321,7 +321,7 @@ class TestMaskPersistence:
     
     @pytest.mark.unit
     def test_load_nonexistent_mask(self, sample_image):
-        """Test loading non-existent mask."""
+        """测试加载不存在的掩码。"""
         am = AnnotationManager()
         am.set_image("test.png", sample_image.shape)
         success = am.load_mask("nonexistent_mask.png")
@@ -330,11 +330,11 @@ class TestMaskPersistence:
 
 
 class TestAnnotationExport:
-    """Tests for annotation export operations."""
+    """标注导出操作的测试。"""
     
     @pytest.mark.unit
     def test_export_coco_annotation(self, sample_image, sample_mask):
-        """Test exporting to COCO format."""
+        """测试导出为 COCO 格式。"""
         am = AnnotationManager()
         am.set_image("test_image.png", sample_image.shape)
         am.set_mask(sample_mask)
@@ -348,12 +348,12 @@ class TestAnnotationExport:
         assert 'area' in coco_ann
         assert 'segmentation' in coco_ann
         
-        # Check bbox format [x, y, width, height]
+        # 检查边界框格式 [x, y, width, height]
         assert len(coco_ann['bbox']) == 4
     
     @pytest.mark.unit
     def test_export_yolo_annotation(self, sample_image, sample_mask):
-        """Test exporting to YOLO format."""
+        """测试导出为 YOLO 格式。"""
         am = AnnotationManager()
         am.set_image("test_image.png", sample_image.shape)
         am.set_mask(sample_mask)
@@ -363,15 +363,15 @@ class TestAnnotationExport:
         assert isinstance(yolo_anns, list)
         assert len(yolo_anns) > 0
         
-        # Check YOLO format (class_id x1 y1 x2 y2 ...)
+        # 检查 YOLO 格式 (class_id x1 y1 x2 y2 ...)
         for ann in yolo_anns:
             parts = ann.split()
-            assert len(parts) >= 7  # class_id + at least 3 points (6 coords)
+            assert len(parts) >= 7  # class_id + 至少 3 个点 (6 个坐标)
             assert parts[0] == '0'  # class_id
     
     @pytest.mark.unit
     def test_export_empty_mask(self, sample_image, empty_mask):
-        """Test exporting empty mask."""
+        """测试导出空掩码。"""
         am = AnnotationManager()
         am.set_image("test_image.png", sample_image.shape)
         am.set_mask(empty_mask)
@@ -379,9 +379,13 @@ class TestAnnotationExport:
         coco_ann = am.export_coco_annotation()
         yolo_anns = am.export_yolo_annotation()
         
-        # Empty mask should return empty/minimal annotations
+        # 空掩码应返回空/最小标注
         assert coco_ann == {} or coco_ann.get('area', 0) == 0
         assert yolo_anns == []
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
 
 
 if __name__ == "__main__":

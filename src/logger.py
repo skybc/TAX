@@ -1,9 +1,8 @@
 """
-Logging configuration for the application.
+应用程序的日志配置。
 
-This module provides a centralized logging configuration that can be used
-throughout the application. It supports both file and console logging with
-colored output.
+此模块提供了一个集中的日志配置，可在整个应用程序中使用。
+它支持文件和控制台日志记录，并具有彩色输出。
 """
 
 import logging
@@ -22,24 +21,24 @@ def setup_logger(
     console: bool = True,
 ) -> logging.Logger:
     """
-    Set up and configure a logger with file and console handlers.
+    设置并配置带有文件和控制台处理程序的日志记录器。
     
-    Args:
-        name: Logger name
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Path to log file (optional)
-        console: Whether to add console handler
+    参数:
+        name: 日志记录器名称
+        level: 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        log_file: 日志文件路径（可选）
+        console: 是否添加控制台处理程序
         
-    Returns:
-        Configured logger instance
+    返回:
+        配置好的日志记录器实例
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper()))
     
-    # Remove existing handlers
+    # 移除现有处理程序
     logger.handlers = []
     
-    # Create formatters
+    # 创建格式化程序
     file_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -57,9 +56,9 @@ def setup_logger(
         }
     )
     
-    # Add file handler if log_file is specified
+    # 如果指定了 log_file，则添加文件处理程序
     if log_file:
-        # Create log directory if it doesn't exist
+        # 如果日志目录不存在，则创建它
         log_dir = Path(log_file).parent
         log_dir.mkdir(parents=True, exist_ok=True)
         
@@ -68,7 +67,7 @@ def setup_logger(
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
     
-    # Add console handler if enabled
+    # 如果启用，则添加控制台处理程序
     if console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.DEBUG)
@@ -78,7 +77,7 @@ def setup_logger(
     return logger
 
 
-# Create default logger
+# 创建默认日志记录器
 logger = setup_logger(
     name="IndustrialDefectSeg",
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -89,13 +88,13 @@ logger = setup_logger(
 
 def get_logger(name: str = None) -> logging.Logger:
     """
-    Get a logger instance.
+    获取日志记录器实例。
     
-    Args:
-        name: Logger name (uses default if None)
+    参数:
+        name: 日志记录器名称（如果为 None，则使用默认名称）
         
-    Returns:
-        Logger instance
+    返回:
+        日志记录器实例
     """
     if name:
         return logging.getLogger(name)

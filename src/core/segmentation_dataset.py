@@ -1,10 +1,10 @@
 """
-Dataset loader for segmentation training.
+用于分割训练的数据集加载器。
 
-This module provides:
-- SegmentationDataset with augmentation
-- Data loading utilities
-- Train/val split handling
+此模块提供：
+- 带有数据增强功能的 SegmentationDataset
+- 数据加载实用程序
+- 训练/验证集划分处理
 """
 
 import os
@@ -26,9 +26,9 @@ logger = get_logger(__name__)
 
 class SegmentationDataset(Dataset):
     """
-    Dataset for semantic segmentation.
+    语义分割数据集。
     
-    Loads images and corresponding masks, applies augmentations.
+    加载图像及其对应的掩码，并应用数据增强。
     """
     
     def __init__(self,
@@ -37,72 +37,72 @@ class SegmentationDataset(Dataset):
                  transform: Optional[Callable] = None,
                  preprocessing: Optional[Callable] = None):
         """
-        Initialize dataset.
+        初始化数据集。
         
-        Args:
-            image_paths: List of image file paths
-            mask_paths: List of mask file paths
-            transform: Augmentation transform
-            preprocessing: Preprocessing function
+        参数:
+            image_paths: 图像文件路径列表
+            mask_paths: 掩码文件路径列表
+            transform: 增强变换
+            preprocessing: 预处理函数
         """
         assert len(image_paths) == len(mask_paths), \
-            "Number of images and masks must match"
+            "图像和掩码的数量必须匹配"
         
         self.image_paths = image_paths
         self.mask_paths = mask_paths
         self.transform = transform
         self.preprocessing = preprocessing
         
-        logger.info(f"Created dataset with {len(image_paths)} samples")
+        logger.info(f"已创建包含 {len(image_paths)} 个样本的数据集")
     
     def __len__(self) -> int:
-        """Get dataset size."""
+        """获取数据集大小。"""
         return len(self.image_paths)
     
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Get item by index.
+        通过索引获取项。
         
-        Args:
-            idx: Sample index
+        参数:
+            idx: 样本索引
             
-        Returns:
-            (image, mask) tuple as tensors
+        返回:
+            张量格式的 (image, mask) 元组
         """
-        # Load image and mask
+        # 加载图像和掩码
         image = load_image(self.image_paths[idx])
         mask = load_mask(self.mask_paths[idx])
         
         if image is None or mask is None:
-            logger.error(f"Failed to load: {self.image_paths[idx]}")
-            # Return dummy data
+            logger.error(f"加载失败: {self.image_paths[idx]}")
+            # 返回虚拟数据
             return torch.zeros(3, 256, 256), torch.zeros(1, 256, 256)
         
-        # Ensure mask is 2D
+        # 确保掩码是 2D 的
         if len(mask.shape) == 3:
             mask = mask[:, :, 0]
         
-        # Normalize mask to [0, 1]
+        # 将掩码归一化到 [0, 1]
         if mask.max() > 1:
             mask = mask / 255.0
         
-        # Apply augmentation
+        # 应用增强
         if self.transform is not None:
             augmented = self.transform(image=image, mask=mask)
             image = augmented['image']
             mask = augmented['mask']
         
-        # Apply preprocessing
+        # 应用预处理
         if self.preprocessing is not None:
             preprocessed = self.preprocessing(image=image, mask=mask)
             image = preprocessed['image']
             mask = preprocessed['mask']
         
-        # Add channel dimension to mask if needed
+        # 如果需要，为掩码添加通道维度
         if len(mask.shape) == 2:
             mask = np.expand_dims(mask, axis=0)
         
-        # Convert to tensors if not already
+        # 如果还不是张量，则转换为张量
         if not isinstance(image, torch.Tensor):
             image = torch.from_numpy(image).float()
         if not isinstance(mask, torch.Tensor):
@@ -112,13 +112,13 @@ class SegmentationDataset(Dataset):
     
     def get_sample_info(self, idx: int) -> Dict:
         """
-        Get information about a sample.
+        获取样本信息。
         
-        Args:
-            idx: Sample index
+        参数:
+            idx: 样本索引
             
-        Returns:
-            Dictionary with sample info
+        返回:
+            包含样本信息的字典
         """
         return {
             'image_path': self.image_paths[idx],
@@ -131,17 +131,17 @@ class SegmentationDataset(Dataset):
 def get_training_augmentation(image_size: Tuple[int, int] = (512, 512),
                               p: float = 0.5) -> A.Compose:
     """
-    Get training augmentation pipeline.
+    获取训练数据增强流水线。
     
-    Args:
-        image_size: Target image size (height, width)
-        p: Probability of applying augmentation
+    参数:
+        image_size: 目标图像尺寸 (高度, 宽度)
+        p: 应用增强的概率
         
-    Returns:
-        Albumentations Compose object
+    返回:
+        Albumentations Compose 对象
     """
     return A.Compose([
-        # Geometric transforms
+        # 几何变换
         A.Resize(*image_size),
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
@@ -153,7 +153,7 @@ def get_training_augmentation(image_size: Tuple[int, int] = (512, 512),
             p=p
         ),
         
-        # Color transforms
+        # 颜色变换
         A.OneOf([
             A.RandomBrightnessContrast(
                 brightness_limit=0.2,
@@ -169,14 +169,14 @@ def get_training_augmentation(image_size: Tuple[int, int] = (512, 512),
             A.RandomGamma(p=1.0),
         ], p=p),
         
-        # Noise and blur
+        # 噪声和模糊
         A.OneOf([
             A.GaussNoise(p=1.0),
             A.GaussianBlur(p=1.0),
             A.MotionBlur(p=1.0),
         ], p=p * 0.5),
         
-        # Normalize and convert to tensor
+        # 归一化并转换为张量
         A.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225]
@@ -187,13 +187,13 @@ def get_training_augmentation(image_size: Tuple[int, int] = (512, 512),
 
 def get_validation_augmentation(image_size: Tuple[int, int] = (512, 512)) -> A.Compose:
     """
-    Get validation augmentation pipeline (no random augmentation).
+    获取验证数据增强流水线（无随机增强）。
     
-    Args:
-        image_size: Target image size (height, width)
+    参数:
+        image_size: 目标图像尺寸 (高度, 宽度)
         
-    Returns:
-        Albumentations Compose object
+    返回:
+        Albumentations Compose 对象
     """
     return A.Compose([
         A.Resize(*image_size),
@@ -207,13 +207,13 @@ def get_validation_augmentation(image_size: Tuple[int, int] = (512, 512)) -> A.C
 
 def get_preprocessing(preprocessing_fn: Optional[Callable] = None) -> A.Compose:
     """
-    Get preprocessing pipeline.
+    获取预处理流水线。
     
-    Args:
-        preprocessing_fn: Preprocessing function from encoder
+    参数:
+        preprocessing_fn: 来自编码器的预处理函数
         
-    Returns:
-        Albumentations Compose object
+    返回:
+        Albumentations Compose 对象
     """
     transforms = []
     
@@ -232,22 +232,22 @@ def create_dataloaders(train_image_paths: List[str],
                        image_size: Tuple[int, int] = (512, 512),
                        augmentation_prob: float = 0.5) -> Tuple:
     """
-    Create train and validation dataloaders.
+    创建训练和验证数据加载器。
     
-    Args:
-        train_image_paths: Training image paths
-        train_mask_paths: Training mask paths
-        val_image_paths: Validation image paths
-        val_mask_paths: Validation mask paths
-        batch_size: Batch size
-        num_workers: Number of workers for data loading
-        image_size: Target image size
-        augmentation_prob: Probability of applying augmentation
+    参数:
+        train_image_paths: 训练图像路径
+        train_mask_paths: 训练掩码路径
+        val_image_paths: 验证图像路径
+        val_mask_paths: 验证掩码路径
+        batch_size: 批次大小
+        num_workers: 数据加载的工作线程数
+        image_size: 目标图像尺寸
+        augmentation_prob: 应用增强的概率
         
-    Returns:
-        (train_loader, val_loader) tuple
+    返回:
+        (train_loader, val_loader) 元组
     """
-    # Create datasets
+    # 创建数据集
     train_dataset = SegmentationDataset(
         image_paths=train_image_paths,
         mask_paths=train_mask_paths,
@@ -260,7 +260,7 @@ def create_dataloaders(train_image_paths: List[str],
         transform=get_validation_augmentation(image_size)
     )
     
-    # Create dataloaders
+    # 创建数据加载器
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -278,8 +278,8 @@ def create_dataloaders(train_image_paths: List[str],
         pin_memory=True
     )
     
-    logger.info(f"Created dataloaders: train={len(train_dataset)}, val={len(val_dataset)}")
-    logger.info(f"Batch size: {batch_size}, num_workers: {num_workers}")
+    logger.info(f"已创建数据加载器: 训练集={len(train_dataset)}, 验证集={len(val_dataset)}")
+    logger.info(f"批次大小: {batch_size}, 工作线程数: {num_workers}")
     
     return train_loader, val_loader
 
@@ -288,63 +288,63 @@ def load_dataset_from_split_files(split_dir: str,
                                   images_dir: str,
                                   masks_dir: str) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
-    Load dataset from split files (train.txt, val.txt).
+    从划分文件（train.txt, val.txt）加载数据集。
     
-    Args:
-        split_dir: Directory containing split files
-        images_dir: Directory containing images
-        masks_dir: Directory containing masks
+    参数:
+        split_dir: 包含划分文件的目录
+        images_dir: 包含图像的目录
+        masks_dir: 包含掩码的目录
         
-    Returns:
+    返回:
         (train_image_paths, train_mask_paths, val_image_paths, val_mask_paths)
     """
     split_dir = Path(split_dir)
     images_dir = Path(images_dir)
     masks_dir = Path(masks_dir)
     
-    # Load train split
+    # 加载训练划分
     train_file = split_dir / "train.txt"
     if not train_file.exists():
-        logger.error(f"Train split file not found: {train_file}")
+        logger.error(f"未找到训练划分文件: {train_file}")
         return [], [], [], []
     
     with open(train_file, 'r') as f:
         train_names = [line.strip() for line in f if line.strip()]
     
-    # Load val split
+    # 加载验证划分
     val_file = split_dir / "val.txt"
     if not val_file.exists():
-        logger.error(f"Val split file not found: {val_file}")
+        logger.error(f"未找到验证划分文件: {val_file}")
         return [], [], [], []
     
     with open(val_file, 'r') as f:
         val_names = [line.strip() for line in f if line.strip()]
     
-    # Build paths
+    # 构建路径
     train_image_paths = [str(images_dir / name) for name in train_names]
     train_mask_paths = [str(masks_dir / Path(name).stem) + ".png" for name in train_names]
     
     val_image_paths = [str(images_dir / name) for name in val_names]
     val_mask_paths = [str(masks_dir / Path(name).stem) + ".png" for name in val_names]
     
-    # Filter existing files
+    # 过滤存在的文件
     train_image_paths, train_mask_paths = _filter_existing_pairs(train_image_paths, train_mask_paths)
     val_image_paths, val_mask_paths = _filter_existing_pairs(val_image_paths, val_mask_paths)
     
-    logger.info(f"Loaded dataset from splits: train={len(train_image_paths)}, val={len(val_image_paths)}")
+    logger.info(f"已从划分文件加载数据集: 训练集={len(train_image_paths)}, 验证集={len(val_image_paths)}")
     
     return train_image_paths, train_mask_paths, val_image_paths, val_mask_paths
 
 
 def _filter_existing_pairs(image_paths: List[str], mask_paths: List[str]) -> Tuple[List[str], List[str]]:
     """
-    Filter out non-existing image-mask pairs.
+    过滤掉不存在的图像-掩码对。
     
-    Args:
-        image_paths: List of image paths
-        mask_paths: List of mask paths
+    参数:
+        image_paths: 图像路径列表
+        mask_paths: 掩码路径列表
         
-    Returns:
+    返回:
         (filtered_image_paths, filtered_mask_paths)
     """
     filtered_images = []
@@ -355,7 +355,7 @@ def _filter_existing_pairs(image_paths: List[str], mask_paths: List[str]) -> Tup
             filtered_images.append(img_path)
             filtered_masks.append(mask_path)
         else:
-            logger.warning(f"Skipping missing pair: {img_path} or {mask_path}")
+            logger.warning(f"跳过缺失的配对: {img_path} 或 {mask_path}")
     
     return filtered_images, filtered_masks
 
@@ -363,14 +363,14 @@ def _filter_existing_pairs(image_paths: List[str], mask_paths: List[str]) -> Tup
 def compute_class_weights(mask_paths: List[str],
                           num_classes: int = 2) -> torch.Tensor:
     """
-    Compute class weights for imbalanced datasets.
+    为不平衡的数据集计算类别权重。
     
-    Args:
-        mask_paths: List of mask file paths
-        num_classes: Number of classes
+    参数:
+        mask_paths: 掩码文件路径列表
+        num_classes: 类别数量
         
-    Returns:
-        Class weights tensor
+    返回:
+        类别权重张量
     """
     class_counts = np.zeros(num_classes)
     
@@ -379,20 +379,20 @@ def compute_class_weights(mask_paths: List[str],
         if mask is None:
             continue
         
-        # Binarize mask
+        # 二值化掩码
         mask_binary = (mask > 0).astype(np.uint8)
         
-        # Count pixels
-        class_counts[0] += np.sum(mask_binary == 0)  # Background
-        class_counts[1] += np.sum(mask_binary == 1)  # Foreground
+        # 统计像素
+        class_counts[0] += np.sum(mask_binary == 0)  # 背景
+        class_counts[1] += np.sum(mask_binary == 1)  # 前景
     
-    # Compute weights (inverse frequency)
+    # 计算权重（频率的倒数）
     total_pixels = class_counts.sum()
     class_weights = total_pixels / (num_classes * class_counts + 1e-6)
     
-    # Normalize
+    # 归一化
     class_weights = class_weights / class_weights.sum() * num_classes
     
-    logger.info(f"Class weights computed: {class_weights}")
+    logger.info(f"已计算类别权重: {class_weights}")
     
     return torch.from_numpy(class_weights).float()

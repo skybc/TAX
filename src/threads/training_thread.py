@@ -1,10 +1,10 @@
 """
-Training thread for asynchronous model training.
+用于异步模型训练的训练线程。
 
-This module provides:
-- Asynchronous training in a separate thread
-- Progress reporting
-- Live metrics updates
+此模块提供：
+- 在单独线程中进行异步训练
+- 进度报告
+- 实时指标更新
 """
 
 from typing import Dict, List
@@ -23,47 +23,47 @@ logger = get_logger(__name__)
 
 class TrainingThread(QThread):
     """
-    Thread for running model training asynchronously.
+    用于异步运行模型训练的线程。
     
-    Signals:
-        epoch_started: Emitted when epoch starts (epoch, total_epochs)
-        epoch_completed: Emitted when epoch completes (epoch, train_loss, val_loss, val_metrics)
-        batch_progress: Emitted during batch processing (current, total, phase, loss, metrics)
-        training_completed: Emitted when training completes (history)
-        training_failed: Emitted when training fails (error_message)
+    信号:
+        epoch_started: 在 epoch 开始时发出（当前 epoch, 总 epoch 数）
+        epoch_completed: 在 epoch 完成时发出（epoch, 训练损失, 验证损失, 验证指标）
+        batch_progress: 在批次处理期间发出（当前, 总计, 阶段, 损失, 指标）
+        training_completed: 在训练完成时发出（历史记录）
+        training_failed: 在训练失败时发出（错误消息）
     """
     
-    epoch_started = pyqtSignal(int, int)  # current_epoch, total_epochs
-    epoch_completed = pyqtSignal(int, float, float, dict)  # epoch, train_loss, val_loss, val_metrics
-    batch_progress = pyqtSignal(int, int, str, float, dict)  # current, total, phase, loss, metrics
-    training_completed = pyqtSignal(dict)  # history
-    training_failed = pyqtSignal(str)  # error message
+    epoch_started = pyqtSignal(int, int)  # 当前 epoch, 总 epoch 数
+    epoch_completed = pyqtSignal(int, float, float, dict)  # epoch, 训练损失, 验证损失, 验证指标
+    batch_progress = pyqtSignal(int, int, str, float, dict)  # 当前, 总计, 阶段, 损失, 指标
+    training_completed = pyqtSignal(dict)  # 历史记录
+    training_failed = pyqtSignal(str)  # 错误消息
     
     def __init__(self, config: Dict):
         """
-        Initialize training thread.
+        初始化训练线程。
         
-        Args:
-            config: Training configuration dictionary
+        参数:
+            config: 训练配置字典
         """
         super().__init__()
         
         self.config = config
         self._is_running = True
         
-        logger.info("Training thread initialized")
+        logger.info("训练线程已初始化")
     
     def run(self):
-        """Execute training."""
+        """执行训练。"""
         try:
-            # Setup device
+            # 设置设备
             device = torch.device(
                 self.config.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
             )
-            logger.info(f"Training device: {device}")
+            logger.info(f"训练设备: {device}")
             
-            # Load dataset
-            self.batch_progress.emit(0, 100, "Loading dataset...", 0.0, {})
+            # 加载数据集
+            self.batch_progress.emit(0, 100, "正在加载数据集...", 0.0, {})
             
             train_img, train_mask, val_img, val_mask = load_dataset_from_split_files(
                 split_dir=self.config['split_dir'],
@@ -72,12 +72,12 @@ class TrainingThread(QThread):
             )
             
             if not train_img or not val_img:
-                self.training_failed.emit("No training/validation data found")
+                self.training_failed.emit("未找到训练/验证数据")
                 return
             
-            logger.info(f"Dataset loaded: train={len(train_img)}, val={len(val_img)}")
+            logger.info(f"数据集已加载: 训练集={len(train_img)}, 验证集={len(val_img)}")
             
-            # Create dataloaders
+            # 创建数据加载器
             train_loader, val_loader = create_dataloaders(
                 train_image_paths=train_img,
                 train_mask_paths=train_mask,
@@ -90,8 +90,8 @@ class TrainingThread(QThread):
                 augmentation_prob=self.config.get('augmentation_prob', 0.5)
             )
             
-            # Build model
-            self.batch_progress.emit(20, 100, "Building model...", 0.0, {})
+            # 构建模型
+            self.batch_progress.emit(20, 100, "正在构建模型...", 0.0, {})
             
             model = build_model(
                 architecture=self.config.get('architecture', 'unet'),
@@ -103,14 +103,14 @@ class TrainingThread(QThread):
             )
             model = model.to(device)
             
-            # Get loss function
+            # 获取损失函数
             criterion = get_loss_function(
                 loss_name=self.config.get('loss', 'combined'),
                 dice_weight=self.config.get('dice_weight', 0.5),
                 bce_weight=self.config.get('bce_weight', 0.5)
             )
             
-            # Create optimizer
+            # 创建优化器
             optimizer = create_optimizer(
                 model=model,
                 optimizer_name=self.config.get('optimizer', 'adam'),
@@ -118,14 +118,14 @@ class TrainingThread(QThread):
                 weight_decay=self.config.get('weight_decay', 1e-5)
             )
             
-            # Create scheduler
+            # 创建调度器
             scheduler = create_scheduler(
                 optimizer=optimizer,
                 scheduler_name=self.config.get('scheduler', 'reduce_on_plateau'),
                 patience=self.config.get('scheduler_patience', 5)
             )
             
-            # Create trainer
+            # 创建训练器
             trainer = ModelTrainer(
                 model=model,
                 optimizer=optimizer,
@@ -136,7 +136,7 @@ class TrainingThread(QThread):
                 early_stopping_patience=self.config.get('early_stopping_patience', 10)
             )
             
-            # Training callbacks
+            # 训练回调
             def epoch_callback(epoch, train_results, val_results):
                 if not self._is_running:
                     return
@@ -152,10 +152,10 @@ class TrainingThread(QThread):
                 if not self._is_running:
                     return
                 
-                phase = "Training" if model.training else "Validation"
+                phase = "训练" if model.training else "验证"
                 self.batch_progress.emit(current, total, phase, loss, metrics)
             
-            # Train
+            # 训练
             num_epochs = self.config.get('num_epochs', 50)
             
             history = trainer.train(
@@ -170,10 +170,10 @@ class TrainingThread(QThread):
                 self.training_completed.emit(history)
             
         except Exception as e:
-            logger.error(f"Training error: {e}", exc_info=True)
+            logger.error(f"训练错误: {e}", exc_info=True)
             self.training_failed.emit(str(e))
     
     def stop(self):
-        """Stop training."""
+        """停止训练。"""
         self._is_running = False
-        logger.info("Training stop requested")
+        logger.info("已请求停止训练")

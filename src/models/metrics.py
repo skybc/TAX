@@ -1,11 +1,11 @@
 """
-Evaluation metrics for segmentation.
+用于分割的评估指标。
 
-This module provides:
-- IoU (Intersection over Union)
-- Dice coefficient
-- Pixel accuracy
-- Precision/Recall/F1
+此模块提供：
+- IoU (交并比)
+- Dice 系数
+- 像素准确率
+- 精确率/召回率/F1 分数
 """
 
 import torch
@@ -22,25 +22,25 @@ def compute_iou(pred: torch.Tensor,
                 threshold: float = 0.5,
                 smooth: float = 1e-6) -> float:
     """
-    Compute Intersection over Union (IoU).
+    计算交并比 (IoU)。
     
-    Args:
-        pred: Predicted masks (B, C, H, W) or (B, H, W)
-        target: Ground truth masks (B, C, H, W) or (B, H, W)
-        threshold: Threshold for binarizing predictions
-        smooth: Smoothing factor
+    参数:
+        pred: 预测掩码 (B, C, H, W) 或 (B, H, W)
+        target: 真值掩码 (B, C, H, W) 或 (B, H, W)
+        threshold: 二值化预测的阈值
+        smooth: 平滑因子
         
-    Returns:
-        IoU score
+    返回:
+        IoU 分数
     """
-    # Binarize predictions
+    # 二值化预测
     pred = (pred > threshold).float()
     
-    # Flatten tensors
+    # 展平张量
     pred = pred.view(-1)
     target = target.view(-1)
     
-    # Compute intersection and union
+    # 计算交集和并集
     intersection = (pred * target).sum()
     union = pred.sum() + target.sum() - intersection
     
@@ -54,25 +54,25 @@ def compute_dice(pred: torch.Tensor,
                  threshold: float = 0.5,
                  smooth: float = 1e-6) -> float:
     """
-    Compute Dice coefficient.
+    计算 Dice 系数。
     
-    Args:
-        pred: Predicted masks (B, C, H, W) or (B, H, W)
-        target: Ground truth masks (B, C, H, W) or (B, H, W)
-        threshold: Threshold for binarizing predictions
-        smooth: Smoothing factor
+    参数:
+        pred: 预测掩码 (B, C, H, W) 或 (B, H, W)
+        target: 真值掩码 (B, C, H, W) 或 (B, H, W)
+        threshold: 二值化预测的阈值
+        smooth: 平滑因子
         
-    Returns:
-        Dice score
+    返回:
+        Dice 分数
     """
-    # Binarize predictions
+    # 二值化预测
     pred = (pred > threshold).float()
     
-    # Flatten tensors
+    # 展平张量
     pred = pred.view(-1)
     target = target.view(-1)
     
-    # Compute Dice
+    # 计算 Dice
     intersection = (pred * target).sum()
     dice = (2.0 * intersection + smooth) / (pred.sum() + target.sum() + smooth)
     
@@ -83,24 +83,24 @@ def compute_pixel_accuracy(pred: torch.Tensor,
                            target: torch.Tensor,
                            threshold: float = 0.5) -> float:
     """
-    Compute pixel-wise accuracy.
+    计算像素级准确率。
     
-    Args:
-        pred: Predicted masks (B, C, H, W) or (B, H, W)
-        target: Ground truth masks (B, C, H, W) or (B, H, W)
-        threshold: Threshold for binarizing predictions
+    参数:
+        pred: 预测掩码 (B, C, H, W) 或 (B, H, W)
+        target: 真值掩码 (B, C, H, W) 或 (B, H, W)
+        threshold: 二值化预测的阈值
         
-    Returns:
-        Pixel accuracy
+    返回:
+        像素准确率
     """
-    # Binarize predictions
+    # 二值化预测
     pred = (pred > threshold).float()
     
-    # Flatten tensors
+    # 展平张量
     pred = pred.view(-1)
     target = target.view(-1)
     
-    # Compute accuracy
+    # 计算准确率
     correct = (pred == target).sum()
     total = target.numel()
     
@@ -114,30 +114,30 @@ def compute_precision_recall_f1(pred: torch.Tensor,
                                 threshold: float = 0.5,
                                 smooth: float = 1e-6) -> Tuple[float, float, float]:
     """
-    Compute precision, recall, and F1 score.
+    计算精确率、召回率和 F1 分数。
     
-    Args:
-        pred: Predicted masks (B, C, H, W) or (B, H, W)
-        target: Ground truth masks (B, C, H, W) or (B, H, W)
-        threshold: Threshold for binarizing predictions
-        smooth: Smoothing factor
+    参数:
+        pred: 预测掩码 (B, C, H, W) 或 (B, H, W)
+        target: 真值掩码 (B, C, H, W) 或 (B, H, W)
+        threshold: 二值化预测的阈值
+        smooth: 平滑因子
         
-    Returns:
-        (precision, recall, f1) tuple
+    返回:
+        (精确率, 召回率, f1) 元组
     """
-    # Binarize predictions
+    # 二值化预测
     pred = (pred > threshold).float()
     
-    # Flatten tensors
+    # 展平张量
     pred = pred.view(-1)
     target = target.view(-1)
     
-    # Compute TP, FP, FN
+    # 计算 TP, FP, FN
     tp = (pred * target).sum()
     fp = (pred * (1 - target)).sum()
     fn = ((1 - pred) * target).sum()
     
-    # Compute metrics
+    # 计算指标
     precision = (tp + smooth) / (tp + fp + smooth)
     recall = (tp + smooth) / (tp + fn + smooth)
     f1 = 2 * precision * recall / (precision + recall + smooth)
@@ -149,15 +149,15 @@ def compute_all_metrics(pred: torch.Tensor,
                        target: torch.Tensor,
                        threshold: float = 0.5) -> dict:
     """
-    Compute all evaluation metrics.
+    计算所有评估指标。
     
-    Args:
-        pred: Predicted masks
-        target: Ground truth masks
-        threshold: Threshold for binarizing predictions
+    参数:
+        pred: 预测掩码
+        target: 真值掩码
+        threshold: 二值化预测的阈值
         
-    Returns:
-        Dictionary with all metrics
+    返回:
+        包含所有指标的字典
     """
     iou = compute_iou(pred, target, threshold)
     dice = compute_dice(pred, target, threshold)
@@ -176,15 +176,15 @@ def compute_all_metrics(pred: torch.Tensor,
 
 class MetricsTracker:
     """
-    Tracker for accumulating metrics over multiple batches.
+    用于在多个批次中累积指标的追踪器。
     """
     
     def __init__(self):
-        """Initialize metrics tracker."""
+        """初始化指标追踪器。"""
         self.reset()
     
     def reset(self):
-        """Reset all metrics."""
+        """重置所有指标。"""
         self.metrics = {
             'iou': [],
             'dice': [],
@@ -196,12 +196,12 @@ class MetricsTracker:
     
     def update(self, pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.5):
         """
-        Update metrics with new batch.
+        使用新批次更新指标。
         
-        Args:
-            pred: Predicted masks
-            target: Ground truth masks
-            threshold: Threshold for binarizing predictions
+        参数:
+            pred: 预测掩码
+            target: 真值掩码
+            threshold: 二值化预测的阈值
         """
         metrics = compute_all_metrics(pred, target, threshold)
         
@@ -210,10 +210,10 @@ class MetricsTracker:
     
     def get_average(self) -> dict:
         """
-        Get average of all metrics.
+        获取所有指标的平均值。
         
-        Returns:
-            Dictionary with average metrics
+        返回:
+            包含平均指标的字典
         """
         avg_metrics = {}
         
@@ -227,10 +227,10 @@ class MetricsTracker:
     
     def get_std(self) -> dict:
         """
-        Get standard deviation of all metrics.
+        获取所有指标的标准差。
         
-        Returns:
-            Dictionary with std of metrics
+        返回:
+            包含指标标准差的字典
         """
         std_metrics = {}
         
@@ -244,19 +244,19 @@ class MetricsTracker:
     
     def get_summary(self) -> str:
         """
-        Get summary string of metrics.
+        获取指标的摘要字符串。
         
-        Returns:
-            Formatted summary string
+        返回:
+            格式化的摘要字符串
         """
         avg_metrics = self.get_average()
         
-        summary = "Metrics Summary:\n"
+        summary = "指标摘要:\n"
         summary += f"  IoU:       {avg_metrics['iou']:.4f}\n"
         summary += f"  Dice:      {avg_metrics['dice']:.4f}\n"
-        summary += f"  Accuracy:  {avg_metrics['accuracy']:.4f}\n"
-        summary += f"  Precision: {avg_metrics['precision']:.4f}\n"
-        summary += f"  Recall:    {avg_metrics['recall']:.4f}\n"
+        summary += f"  准确率:    {avg_metrics['accuracy']:.4f}\n"
+        summary += f"  精确率:    {avg_metrics['precision']:.4f}\n"
+        summary += f"  召回率:    {avg_metrics['recall']:.4f}\n"
         summary += f"  F1:        {avg_metrics['f1']:.4f}"
         
         return summary

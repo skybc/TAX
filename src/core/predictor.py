@@ -1,11 +1,11 @@
 """
-Predictor for segmentation inference.
+用于分割推理的预测器。
 
-This module provides:
-- Model loading from checkpoint
-- Single and batch prediction
-- Post-processing integration
-- Result saving
+此模块提供：
+- 从检查点加载模型
+- 单张和批量预测
+- 后处理集成
+- 结果保存
 """
 
 import os
@@ -27,13 +27,13 @@ logger = get_logger(__name__)
 
 class Predictor:
     """
-    Predictor for segmentation inference.
+    用于分割推理的预测器。
     
-    Handles:
-    - Loading trained models
-    - Single image prediction
-    - Batch prediction
-    - Result visualization and saving
+    处理：
+    - 加载训练好的模型
+    - 单张图像预测
+    - 批量预测
+    - 结果可视化和保存
     """
     
     def __init__(self,
@@ -41,72 +41,72 @@ class Predictor:
                  device: Optional[torch.device] = None,
                  image_size: Tuple[int, int] = (512, 512)):
         """
-        Initialize predictor.
+        初始化预测器。
         
-        Args:
-            checkpoint_path: Path to model checkpoint
-            device: Device for inference (None for auto-detect)
-            image_size: Input image size for model (H, W)
+        参数:
+            checkpoint_path: 模型检查点路径
+            device: 推理设备（None 表示自动检测）
+            image_size: 模型的输入图像尺寸 (H, W)
         """
         self.checkpoint_path = Path(checkpoint_path)
         self.device = device if device is not None else \
             torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.image_size = image_size
         
-        # Model and config
+        # 模型和配置
         self.model: Optional[nn.Module] = None
         self.config: Dict = {}
         
-        # Statistics
+        # 统计信息
         self.num_predictions = 0
         
-        logger.info(f"Predictor initialized: device={self.device}, image_size={image_size}")
+        logger.info(f"预测器已初始化: 设备={self.device}, 图像尺寸={image_size}")
     
     def load_model(self, architecture: str = 'unet', 
                    encoder: str = 'resnet34',
                    num_classes: int = 1) -> bool:
         """
-        Load model from checkpoint.
+        从检查点加载模型。
         
-        Args:
-            architecture: Model architecture
-            encoder: Encoder backbone
-            num_classes: Number of output classes
+        参数:
+            architecture: 模型架构
+            encoder: 编码器主干
+            num_classes: 输出类别数
             
-        Returns:
-            True if successful, False otherwise
+        返回:
+            如果成功则为 True，否则为 False
         """
         try:
-            # Build model
+            # 构建模型
             self.model = build_model(
                 architecture=architecture,
                 encoder_name=encoder,
-                encoder_weights=None,  # Load from checkpoint
+                encoder_weights=None,  # 从检查点加载
                 in_channels=3,
                 num_classes=num_classes,
                 activation='sigmoid'
             )
             
-            # Load checkpoint
+            # 加载检查点
             if not self.checkpoint_path.exists():
-                logger.error(f"Checkpoint not found: {self.checkpoint_path}")
+                logger.error(f"未找到检查点: {self.checkpoint_path}")
                 return False
             
             checkpoint = torch.load(self.checkpoint_path, map_location=self.device)
             
-            # Load state dict
+            # 加载状态字典
             if 'model_state_dict' in checkpoint:
                 self.model.load_state_dict(checkpoint['model_state_dict'])
-                logger.info("Loaded model from checkpoint")
+                logger.info("已从检查点加载模型")
             else:
                 self.model.load_state_dict(checkpoint)
-                logger.info("Loaded model weights directly")
+                logger.info("已直接加载模型权重")
             
-            # Move to device and set eval mode
+            # 移动到设备并设置为评估模式
             self.model = self.model.to(self.device)
             self.model.eval()
             
-            # Store config
+            # 存储配置
             self.config = {
                 'architecture': architecture,
                 'encoder': encoder,
@@ -114,41 +114,41 @@ class Predictor:
                 'checkpoint': str(self.checkpoint_path)
             }
             
-            logger.info(f"Model loaded: {architecture} with {encoder}")
+            logger.info(f"模型已加载: {architecture} 使用 {encoder}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to load model: {e}", exc_info=True)
+            logger.error(f"加载模型失败: {e}", exc_info=True)
             return False
     
     def preprocess_image(self, image: np.ndarray) -> torch.Tensor:
         """
-        Preprocess image for inference.
+        为推理预处理图像。
         
-        Args:
-            image: Input image (HxWxC) in RGB
+        参数:
+            image: RGB 格式的输入图像 (HxWxC)
             
-        Returns:
-            Preprocessed tensor (1xCxHxW)
+        返回:
+            预处理后的张量 (1xCxHxW)
         """
-        # Store original size
+        # 存储原始尺寸
         original_size = image.shape[:2]
         
-        # Resize
+        # 调整尺寸
         if image.shape[:2] != self.image_size:
             image = resize_image(image, self.image_size)
         
-        # Normalize (ImageNet stats)
+        # 归一化 (使用 ImageNet 统计数据)
         mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         
         image = image.astype(np.float32) / 255.0
         image = (image - mean) / std
         
-        # Convert to tensor (HxWxC -> CxHxW)
+        # 转换为张量 (HxWxC -> CxHxW)
         image = torch.from_numpy(image.transpose(2, 0, 1)).float()
         
-        # Add batch dimension
+        # 添加 batch 维度
         image = image.unsqueeze(0)
         
         return image
@@ -157,23 +157,23 @@ class Predictor:
                         original_size: Tuple[int, int],
                         threshold: float = 0.5) -> np.ndarray:
         """
-        Postprocess prediction mask.
+        后处理预测掩码。
         
-        Args:
-            mask: Predicted mask tensor (1xCxHxW)
-            original_size: Original image size (H, W)
-            threshold: Threshold for binarization
+        参数:
+            mask: 预测的掩码张量 (1xCxHxW)
+            original_size: 原始图像尺寸 (H, W)
+            threshold: 二值化阈值
             
-        Returns:
-            Binary mask (HxW) in uint8
+        返回:
+            uint8 格式的二值掩码 (HxW)
         """
-        # Remove batch and channel dimensions
+        # 移除 batch 和 channel 维度
         mask = mask.squeeze().cpu().numpy()
         
-        # Binarize
+        # 二值化
         mask = (mask > threshold).astype(np.uint8) * 255
         
-        # Resize back to original size
+        # 调整回原始尺寸
         if mask.shape != original_size:
             mask = cv2.resize(mask, (original_size[1], original_size[0]), 
                             interpolation=cv2.INTER_NEAREST)
@@ -185,35 +185,35 @@ class Predictor:
                 threshold: float = 0.5,
                 return_prob: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Predict mask for a single image.
+        预测单张图像的掩码。
         
-        Args:
-            image: Image path or numpy array (HxWxC)
-            threshold: Threshold for binarization
-            return_prob: Whether to return probability map
+        参数:
+            image: 图像路径或 numpy 数组 (HxWxC)
+            threshold: 二值化阈值
+            return_prob: 是否返回概率图
             
-        Returns:
-            Binary mask or (mask, prob_map) tuple
+        返回:
+            二值掩码或 (mask, prob_map) 元组
         """
         if self.model is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError("模型未加载。请先调用 load_model()。")
         
-        # Load image if path
+        # 如果是路径则加载图像
         if isinstance(image, str):
             image = load_image(image)
             if image is None:
-                raise ValueError(f"Failed to load image: {image}")
+                raise ValueError(f"加载图像失败: {image}")
         
         original_size = image.shape[:2]
         
-        # Preprocess
+        # 预处理
         input_tensor = self.preprocess_image(image).to(self.device)
         
-        # Predict
+        # 预测
         with torch.no_grad():
             output = self.model(input_tensor)
         
-        # Postprocess
+        # 后处理
         mask = self.postprocess_mask(output, original_size, threshold)
         
         self.num_predictions += 1
@@ -233,25 +233,25 @@ class Predictor:
                      save_overlay: bool = True,
                      progress_callback: Optional[callable] = None) -> Dict:
         """
-        Predict masks for multiple images.
+        预测多张图像的掩码。
         
-        Args:
-            image_paths: List of image file paths
-            output_dir: Directory to save predictions
-            threshold: Threshold for binarization
-            save_overlay: Whether to save overlay visualization
-            progress_callback: Optional callback(current, total, image_path)
+        参数:
+            image_paths: 图像文件路径列表
+            output_dir: 保存预测结果的目录
+            threshold: 二值化阈值
+            save_overlay: 是否保存叠加可视化图
+            progress_callback: 可选的回调函数 (current, total, image_path)
             
-        Returns:
-            Dictionary with prediction statistics
+        返回:
+            包含预测统计信息的字典
         """
         if self.model is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError("模型未加载。请先调用 load_model()。")
         
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create subdirectories
+        # 创建子目录
         masks_dir = output_dir / "masks"
         masks_dir.mkdir(exist_ok=True)
         
@@ -268,26 +268,26 @@ class Predictor:
         
         for i, image_path in enumerate(image_paths):
             try:
-                # Progress callback
+                # 进度回调
                 if progress_callback is not None:
                     progress_callback(i + 1, len(image_paths), image_path)
                 
-                # Load image
+                # 加载图像
                 image = load_image(image_path)
                 if image is None:
                     results['failed'] += 1
                     results['failed_files'].append(image_path)
                     continue
                 
-                # Predict
+                # 预测
                 mask, prob_map = self.predict(image, threshold, return_prob=True)
                 
-                # Save mask
+                # 保存掩码
                 image_name = Path(image_path).stem
                 mask_path = masks_dir / f"{image_name}_mask.png"
                 save_mask(mask, str(mask_path))
                 
-                # Save overlay
+                # 保存叠加图
                 if save_overlay:
                     overlay = self._create_overlay(image, mask)
                     overlay_path = overlay_dir / f"{image_name}_overlay.png"
@@ -296,37 +296,37 @@ class Predictor:
                 results['successful'] += 1
                 
             except Exception as e:
-                logger.error(f"Failed to predict {image_path}: {e}")
+                logger.error(f"预测 {image_path} 失败: {e}")
                 results['failed'] += 1
                 results['failed_files'].append(image_path)
         
-        logger.info(f"Batch prediction completed: {results['successful']}/{results['total']} successful")
+        logger.info(f"批量预测完成: {results['successful']}/{results['total']} 成功")
         
         return results
     
     def _create_overlay(self, image: np.ndarray, mask: np.ndarray, 
                        alpha: float = 0.5, color: Tuple[int, int, int] = (0, 255, 0)) -> np.ndarray:
         """
-        Create overlay visualization.
+        创建叠加可视化图。
         
-        Args:
-            image: Original image (HxWxC)
-            mask: Binary mask (HxW)
-            alpha: Transparency
-            color: Overlay color (R, G, B)
+        参数:
+            image: 原始图像 (HxWxC)
+            mask: 二值掩码 (HxW)
+            alpha: 透明度
+            color: 叠加颜色 (R, G, B)
             
-        Returns:
-            Overlay image (HxWxC)
+        返回:
+            叠加图像 (HxWxC)
         """
-        # Ensure image is RGB
+        # 确保图像是 RGB 格式
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         
-        # Create colored mask
+        # 创建彩色掩码
         colored_mask = np.zeros_like(image)
         colored_mask[mask > 0] = color
         
-        # Blend
+        # 混合
         overlay = cv2.addWeighted(image, 1 - alpha, colored_mask, alpha, 0)
         
         return overlay
@@ -336,89 +336,89 @@ class Predictor:
                         threshold: float = 0.5,
                         num_augmentations: int = 4) -> np.ndarray:
         """
-        Predict with Test-Time Augmentation (TTA).
+        使用测试时增强 (TTA) 进行预测。
         
-        Args:
-            image: Image path or numpy array
-            threshold: Threshold for binarization
-            num_augmentations: Number of augmentation variations
+        参数:
+            image: 图像路径或 numpy 数组
+            threshold: 二值化阈值
+            num_augmentations: 增强变体的数量
             
-        Returns:
-            Binary mask
+        返回:
+            二值掩码
         """
         if self.model is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError("模型未加载。请先调用 load_model()。")
         
-        # Load image if path
+        # 如果是路径则加载图像
         if isinstance(image, str):
             image = load_image(image)
             if image is None:
-                raise ValueError(f"Failed to load image: {image}")
+                raise ValueError(f"加载图像失败: {image}")
         
         original_size = image.shape[:2]
         predictions = []
         
-        # Original
+        # 原始图像
         pred = self.predict(image, threshold=1.0, return_prob=True)[1]
         predictions.append(pred)
         
-        # Horizontal flip
+        # 水平翻转
         if num_augmentations >= 2:
             flipped = cv2.flip(image, 1)
             pred = self.predict(flipped, threshold=1.0, return_prob=True)[1]
             pred = cv2.flip(pred, 1)
             predictions.append(pred)
         
-        # Vertical flip
+        # 垂直翻转
         if num_augmentations >= 3:
             flipped = cv2.flip(image, 0)
             pred = self.predict(flipped, threshold=1.0, return_prob=True)[1]
             pred = cv2.flip(pred, 0)
             predictions.append(pred)
         
-        # Both flips
+        # 两种翻转
         if num_augmentations >= 4:
             flipped = cv2.flip(cv2.flip(image, 0), 1)
             pred = self.predict(flipped, threshold=1.0, return_prob=True)[1]
             pred = cv2.flip(cv2.flip(pred, 0), 1)
             predictions.append(pred)
         
-        # Average predictions
+        # 平均预测结果
         avg_pred = np.mean(predictions, axis=0)
         
-        # Threshold
+        # 阈值处理
         mask = (avg_pred > threshold).astype(np.uint8) * 255
         
         return mask
     
     def get_model_info(self) -> Dict:
         """
-        Get model information.
+        获取模型信息。
         
-        Returns:
-            Dictionary with model info
+        返回:
+            包含模型信息的字典
         """
         if self.model is None:
-            return {'status': 'not_loaded'}
+            return {'status': '未加载'}
         
         info = {
-            'status': 'loaded',
+            'status': '已加载',
             'config': self.config,
             'device': str(self.device),
             'image_size': self.image_size,
             'num_predictions': self.num_predictions,
         }
         
-        # Add parameter count
+        # 添加参数计数
         if hasattr(self.model, 'get_model_info'):
             info.update(self.model.get_model_info())
         
         return info
     
     def reset_stats(self):
-        """Reset prediction statistics."""
+        """重置预测统计信息。"""
         self.num_predictions = 0
-        logger.debug("Statistics reset")
+        logger.debug("统计信息已重置")
 
 
 def create_predictor(checkpoint_path: str,
@@ -427,39 +427,39 @@ def create_predictor(checkpoint_path: str,
                     device: Optional[str] = None,
                     image_size: Tuple[int, int] = (512, 512)) -> Predictor:
     """
-    Create and initialize a predictor.
+    创建并初始化预测器。
     
-    Args:
-        checkpoint_path: Path to model checkpoint
-        architecture: Model architecture
-        encoder: Encoder backbone
-        device: Device ('cuda' or 'cpu', None for auto)
-        image_size: Input image size
+    参数:
+        checkpoint_path: 模型检查点路径
+        architecture: 模型架构
+        encoder: 编码器主干
+        device: 设备（'cuda' 或 'cpu'，None 表示自动）
+        image_size: 输入图像尺寸
         
-    Returns:
-        Initialized Predictor
+    返回:
+        初始化后的预测器
     """
-    # Parse device
+    # 解析设备
     if device is None:
         device_obj = None
     else:
         device_obj = torch.device(device)
     
-    # Create predictor
+    # 创建预测器
     predictor = Predictor(
         checkpoint_path=checkpoint_path,
         device=device_obj,
         image_size=image_size
     )
     
-    # Load model
+    # 加载模型
     success = predictor.load_model(
         architecture=architecture,
         encoder=encoder
     )
     
     if not success:
-        logger.error("Failed to create predictor")
+        logger.error("创建预测器失败")
         return None
     
     return predictor

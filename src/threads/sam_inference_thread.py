@@ -1,10 +1,10 @@
 """
-SAM inference thread for asynchronous mask prediction.
+用于异步掩码预测的 SAM 推理线程。
 
-This module provides:
-- Asynchronous SAM inference in a separate thread
-- Progress reporting
-- Result signaling
+此模块提供：
+- 在单独线程中进行异步 SAM 推理
+- 进度报告
+- 结果信号
 """
 
 from typing import Optional, List, Tuple, Dict
@@ -19,17 +19,17 @@ logger = get_logger(__name__)
 
 class SAMInferenceThread(QThread):
     """
-    Thread for running SAM inference asynchronously.
+    用于异步运行 SAM 推理的线程。
     
-    Signals:
-        progress_updated: Emitted during processing (progress_percent, message)
-        inference_completed: Emitted when inference is complete (mask_result)
-        inference_failed: Emitted when inference fails (error_message)
+    信号:
+        progress_updated: 在处理期间发出（进度百分比, 消息）
+        inference_completed: 推理完成时发出（掩码结果）
+        inference_failed: 推理失败时发出（错误消息）
     """
     
-    progress_updated = pyqtSignal(int, str)  # progress, message
-    inference_completed = pyqtSignal(dict)  # result dict
-    inference_failed = pyqtSignal(str)  # error message
+    progress_updated = pyqtSignal(int, str)  # 进度, 消息
+    inference_completed = pyqtSignal(dict)  # 结果字典
+    inference_failed = pyqtSignal(str)  # 错误消息
     
     def __init__(self, 
                  sam_handler: SAMHandler,
@@ -37,13 +37,13 @@ class SAMInferenceThread(QThread):
                  prompt_type: str,
                  prompt_data: Dict):
         """
-        Initialize SAM inference thread.
+        初始化 SAM 推理线程。
         
-        Args:
-            sam_handler: SAMHandler instance
-            image: Image to process (HxWx3)
-            prompt_type: Type of prompt ('points', 'box', 'combined')
-            prompt_data: Prompt data dictionary
+        参数:
+            sam_handler: SAMHandler 实例
+            image: 要处理的图像 (HxWx3)
+            prompt_type: 提示类型 ('points', 'box', 'combined')
+            prompt_data: 提示数据字典
         """
         super().__init__()
         
@@ -55,20 +55,20 @@ class SAMInferenceThread(QThread):
         self._is_running = True
     
     def run(self):
-        """Execute SAM inference."""
+        """执行 SAM 推理。"""
         try:
-            # Step 1: Encode image
-            self.progress_updated.emit(10, "Encoding image...")
+            # 步骤 1: 编码图像
+            self.progress_updated.emit(10, "正在编码图像...")
             
             if not self.sam_handler.encode_image(self.image):
-                self.inference_failed.emit("Failed to encode image")
+                self.inference_failed.emit("编码图像失败")
                 return
             
             if not self._is_running:
                 return
             
-            # Step 2: Predict mask
-            self.progress_updated.emit(50, "Predicting mask...")
+            # 步骤 2: 预测掩码
+            self.progress_updated.emit(50, "正在预测掩码...")
             
             prediction = None
             
@@ -100,36 +100,36 @@ class SAMInferenceThread(QThread):
                 )
             
             else:
-                self.inference_failed.emit(f"Unknown prompt type: {self.prompt_type}")
+                self.inference_failed.emit(f"未知提示类型: {self.prompt_type}")
                 return
             
             if not self._is_running:
                 return
             
             if prediction is None:
-                self.inference_failed.emit("SAM prediction failed")
+                self.inference_failed.emit("SAM 预测失败")
                 return
             
-            # Step 3: Get best mask
-            self.progress_updated.emit(80, "Processing result...")
+            # 步骤 3: 获取最佳掩码
+            self.progress_updated.emit(80, "正在处理结果...")
             
             best_mask = self.sam_handler.get_best_mask(prediction)
             
             if best_mask is None:
-                self.inference_failed.emit("No valid mask generated")
+                self.inference_failed.emit("未生成有效掩码")
                 return
             
-            # Step 4: Post-process (optional)
+            # 步骤 4: 后处理（可选）
             post_process = self.prompt_data.get('post_process', True)
             if post_process:
-                self.progress_updated.emit(90, "Post-processing mask...")
+                self.progress_updated.emit(90, "正在对掩码进行后处理...")
                 best_mask = self.sam_handler.post_process_mask(best_mask)
             
             if not self._is_running:
                 return
             
-            # Step 5: Complete
-            self.progress_updated.emit(100, "Complete!")
+            # 步骤 5: 完成
+            self.progress_updated.emit(100, "完成！")
             
             result = {
                 'mask': best_mask,
@@ -142,29 +142,29 @@ class SAMInferenceThread(QThread):
             self.inference_completed.emit(result)
             
         except Exception as e:
-            logger.error(f"SAM inference error: {e}", exc_info=True)
+            logger.error(f"SAM 推理错误: {e}", exc_info=True)
             self.inference_failed.emit(str(e))
     
     def stop(self):
-        """Stop the inference thread."""
+        """停止推理线程。"""
         self._is_running = False
 
 
 class SAMBatchInferenceThread(QThread):
     """
-    Thread for batch SAM inference on multiple images.
+    用于对多张图像进行批量 SAM 推理的线程。
     
-    Signals:
-        progress_updated: Emitted during processing (current, total, message)
-        image_completed: Emitted when one image is processed (index, mask)
-        batch_completed: Emitted when all images are processed (results_list)
-        inference_failed: Emitted when inference fails (error_message)
+    信号:
+        progress_updated: 在处理期间发出（当前, 总计, 消息）
+        image_completed: 处理完一张图像时发出（索引, 掩码）
+        batch_completed: 处理完所有图像时发出（结果列表）
+        inference_failed: 推理失败时发出（错误消息）
     """
     
-    progress_updated = pyqtSignal(int, int, str)  # current, total, message
-    image_completed = pyqtSignal(int, np.ndarray)  # index, mask
-    batch_completed = pyqtSignal(list)  # list of masks
-    inference_failed = pyqtSignal(str)  # error message
+    progress_updated = pyqtSignal(int, int, str)  # 当前, 总计, 消息
+    image_completed = pyqtSignal(int, np.ndarray)  # 索引, 掩码
+    batch_completed = pyqtSignal(list)  # 掩码列表
+    inference_failed = pyqtSignal(str)  # 错误消息
     
     def __init__(self,
                  sam_handler: SAMHandler,
@@ -172,13 +172,13 @@ class SAMBatchInferenceThread(QThread):
                  prompt_type: str,
                  prompt_data_list: List[Dict]):
         """
-        Initialize batch SAM inference thread.
+        初始化批量 SAM 推理线程。
         
-        Args:
-            sam_handler: SAMHandler instance
-            images: List of images to process
-            prompt_type: Type of prompt ('points', 'box', 'combined')
-            prompt_data_list: List of prompt data dictionaries (one per image)
+        参数:
+            sam_handler: SAMHandler 实例
+            images: 要处理的图像列表
+            prompt_type: 提示类型 ('points', 'box', 'combined')
+            prompt_data_list: 提示数据字典列表（每张图像一个）
         """
         super().__init__()
         
@@ -190,7 +190,7 @@ class SAMBatchInferenceThread(QThread):
         self._is_running = True
     
     def run(self):
-        """Execute batch SAM inference."""
+        """执行批量 SAM 推理。"""
         try:
             results = []
             total = len(self.images)
@@ -199,16 +199,16 @@ class SAMBatchInferenceThread(QThread):
                 if not self._is_running:
                     break
                 
-                # Update progress
-                self.progress_updated.emit(i, total, f"Processing image {i+1}/{total}")
+                # 更新进度
+                self.progress_updated.emit(i, total, f"正在处理图像 {i+1}/{total}")
                 
-                # Encode image
+                # 编码图像
                 if not self.sam_handler.encode_image(image):
-                    logger.error(f"Failed to encode image {i}")
+                    logger.error(f"编码图像 {i} 失败")
                     results.append(None)
                     continue
                 
-                # Predict mask
+                # 预测掩码
                 prediction = None
                 
                 if self.prompt_type == 'points':
@@ -227,15 +227,15 @@ class SAMBatchInferenceThread(QThread):
                     )
                 
                 if prediction is None:
-                    logger.error(f"Failed to predict mask for image {i}")
+                    logger.error(f"预测图像 {i} 的掩码失败")
                     results.append(None)
                     continue
                 
-                # Get best mask
+                # 获取最佳掩码
                 best_mask = self.sam_handler.get_best_mask(prediction)
                 
                 if best_mask is not None:
-                    # Post-process if requested
+                    # 如果有要求，进行后处理
                     if prompt_data.get('post_process', True):
                         best_mask = self.sam_handler.post_process_mask(best_mask)
                     
@@ -244,15 +244,15 @@ class SAMBatchInferenceThread(QThread):
                 else:
                     results.append(None)
             
-            # Complete
+            # 完成
             if self._is_running:
-                self.progress_updated.emit(total, total, "Batch processing complete!")
+                self.progress_updated.emit(total, total, "批量处理完成！")
                 self.batch_completed.emit(results)
                 
         except Exception as e:
-            logger.error(f"Batch SAM inference error: {e}", exc_info=True)
+            logger.error(f"批量 SAM 推理错误: {e}", exc_info=True)
             self.inference_failed.emit(str(e))
     
     def stop(self):
-        """Stop the batch inference thread."""
+        """停止批量推理线程。"""
         self._is_running = False

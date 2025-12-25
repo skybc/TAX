@@ -1,11 +1,11 @@
 """
-Chart display widget for matplotlib integration with PyQt5.
+用于 PyQt5 中集成 matplotlib 的图表显示小部件。
 
-This module provides:
-- Matplotlib canvas for PyQt5
-- Interactive chart display
-- Zoom and pan functionality
-- Chart refresh and update
+此模块提供：
+- 用于 PyQt5 的 Matplotlib 画布
+- 交互式图表显示
+- 缩放和平移功能
+- 图表刷新和更新
 """
 
 from typing import Optional
@@ -27,30 +27,30 @@ logger = get_logger(__name__)
 
 class MatplotlibCanvas(FigureCanvas):
     """
-    Matplotlib canvas widget for PyQt5.
+    用于 PyQt5 的 Matplotlib 画布小部件。
     
-    Provides a canvas to display matplotlib figures in Qt applications.
+    提供一个在 Qt 应用程序中显示 matplotlib 图形的画布。
     """
     
     def __init__(self, parent: Optional[QWidget] = None, 
                  figsize: tuple = (8, 6), dpi: int = 100):
         """
-        Initialize MatplotlibCanvas.
+        初始化 MatplotlibCanvas。
         
-        Args:
-            parent: Parent widget
-            figsize: Figure size (width, height) in inches
-            dpi: Dots per inch
+        参数:
+            parent: 父小部件
+            figsize: 图形尺寸 (宽度, 高度)，单位为英寸
+            dpi: 每英寸点数
         """
-        # Create figure
+        # 创建图形
         self.figure = Figure(figsize=figsize, dpi=dpi)
         self.axes = self.figure.add_subplot(111)
         
-        # Initialize canvas
+        # 初始化画布
         super().__init__(self.figure)
         self.setParent(parent)
         
-        # Set size policy
+        # 设置尺寸策略
         FigureCanvas.setSizePolicy(
             self,
             QSizePolicy.Expanding,
@@ -58,40 +58,40 @@ class MatplotlibCanvas(FigureCanvas):
         )
         FigureCanvas.updateGeometry(self)
         
-        logger.debug("MatplotlibCanvas initialized")
+        logger.debug("MatplotlibCanvas 已初始化")
     
     def clear(self):
-        """Clear the canvas."""
+        """清除画布。"""
         self.axes.clear()
         self.draw()
     
     def update_figure(self):
-        """Update the figure display."""
+        """更新图形显示。"""
         self.figure.tight_layout()
         self.draw()
 
 
 class ChartWidget(QWidget):
     """
-    Chart display widget with matplotlib canvas and toolbar.
+    带有 matplotlib 画布和工具栏的图表显示小部件。
     
-    Provides:
-    - Matplotlib canvas for chart display
-    - Navigation toolbar (zoom, pan, save)
-    - Refresh button
+    提供：
+    - 用于图表显示的 Matplotlib 画布
+    - 导航工具栏（缩放、平移、保存）
+    - 刷新按钮
     """
     
     def __init__(self, parent: Optional[QWidget] = None,
                  figsize: tuple = (10, 6), dpi: int = 100,
                  show_toolbar: bool = True):
         """
-        Initialize ChartWidget.
+        初始化 ChartWidget。
         
-        Args:
-            parent: Parent widget
-            figsize: Figure size
-            dpi: Figure DPI
-            show_toolbar: Whether to show navigation toolbar
+        参数:
+            parent: 父小部件
+            figsize: 图形尺寸
+            dpi: 图形 DPI
+            show_toolbar: 是否显示导航工具栏
         """
         super().__init__(parent)
         
@@ -99,35 +99,35 @@ class ChartWidget(QWidget):
         self.dpi = dpi
         self.show_toolbar = show_toolbar
         
-        # Create canvas
+        # 创建画布
         self.canvas = MatplotlibCanvas(self, figsize=figsize, dpi=dpi)
         
-        # Create layout
+        # 创建布局
         self._init_ui()
         
-        logger.info("ChartWidget initialized")
+        logger.info("ChartWidget 已初始化")
     
     def _init_ui(self):
-        """Initialize the user interface."""
+        """初始化用户界面。"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Add toolbar if enabled
+        # 如果启用，添加工具栏
         if self.show_toolbar:
             toolbar = NavigationToolbar(self.canvas, self)
             layout.addWidget(toolbar)
         
-        # Add canvas
+        # 添加画布
         layout.addWidget(self.canvas)
         
-        # Add control buttons
+        # 添加控制按钮
         button_layout = QHBoxLayout()
         
-        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button = QPushButton("刷新")
         self.refresh_button.clicked.connect(self.refresh_chart)
         button_layout.addWidget(self.refresh_button)
         
-        self.clear_button = QPushButton("Clear")
+        self.clear_button = QPushButton("清除")
         self.clear_button.clicked.connect(self.clear_chart)
         button_layout.addWidget(self.clear_button)
         
@@ -137,98 +137,98 @@ class ChartWidget(QWidget):
     
     def get_axes(self):
         """
-        Get the matplotlib axes object.
+        获取 matplotlib axes 对象。
         
-        Returns:
+        返回:
             Matplotlib axes
         """
         return self.canvas.axes
     
     def get_figure(self):
         """
-        Get the matplotlib figure object.
+        获取 matplotlib figure 对象。
         
-        Returns:
+        返回:
             Matplotlib figure
         """
         return self.canvas.figure
     
     def plot_data(self, x, y, **kwargs):
         """
-        Plot data on the canvas.
+        在画布上绘制数据。
         
-        Args:
-            x: X-axis data
-            y: Y-axis data
-            **kwargs: Additional plot arguments
+        参数:
+            x: X 轴数据
+            y: Y 轴数据
+            **kwargs: 附加绘图参数
         """
         self.canvas.axes.plot(x, y, **kwargs)
         self.canvas.update_figure()
     
     def bar_plot(self, x, height, **kwargs):
         """
-        Create bar plot on the canvas.
+        在画布上创建柱状图。
         
-        Args:
-            x: X positions
-            height: Bar heights
-            **kwargs: Additional bar plot arguments
+        参数:
+            x: X 轴位置
+            height: 柱子高度
+            **kwargs: 附加柱状图参数
         """
         self.canvas.axes.bar(x, height, **kwargs)
         self.canvas.update_figure()
     
     def histogram(self, data, bins=30, **kwargs):
         """
-        Create histogram on the canvas.
+        在画布上创建直方图。
         
-        Args:
-            data: Data to plot
-            bins: Number of bins
-            **kwargs: Additional histogram arguments
+        参数:
+            data: 要绘制的数据
+            bins: 箱子数量
+            **kwargs: 附加直方图参数
         """
         self.canvas.axes.hist(data, bins=bins, **kwargs)
         self.canvas.update_figure()
     
     def scatter(self, x, y, **kwargs):
         """
-        Create scatter plot on the canvas.
+        在画布上创建散点图。
         
-        Args:
-            x: X-axis data
-            y: Y-axis data
-            **kwargs: Additional scatter arguments
+        参数:
+            x: X 轴数据
+            y: Y 轴数据
+            **kwargs: 附加散点图参数
         """
         self.canvas.axes.scatter(x, y, **kwargs)
         self.canvas.update_figure()
     
     def imshow(self, image, **kwargs):
         """
-        Display image on the canvas.
+        在画布上显示图像。
         
-        Args:
-            image: Image array
-            **kwargs: Additional imshow arguments
+        参数:
+            image: 图像数组
+            **kwargs: 附加 imshow 参数
         """
         self.canvas.axes.imshow(image, **kwargs)
         self.canvas.update_figure()
     
     def set_title(self, title: str):
         """
-        Set plot title.
+        设置图表标题。
         
-        Args:
-            title: Plot title
+        参数:
+            title: 图表标题
         """
         self.canvas.axes.set_title(title, fontsize=12, fontweight='bold')
         self.canvas.update_figure()
     
     def set_labels(self, xlabel: str, ylabel: str):
         """
-        Set axis labels.
+        设置轴标签。
         
-        Args:
-            xlabel: X-axis label
-            ylabel: Y-axis label
+        参数:
+            xlabel: X 轴标签
+            ylabel: Y 轴标签
         """
         self.canvas.axes.set_xlabel(xlabel, fontsize=10)
         self.canvas.axes.set_ylabel(ylabel, fontsize=10)
@@ -236,70 +236,70 @@ class ChartWidget(QWidget):
     
     def set_legend(self, *args, **kwargs):
         """
-        Add legend to plot.
+        为图表添加图例。
         
-        Args:
-            *args: Legend arguments
-            **kwargs: Legend keyword arguments
+        参数:
+            *args: 图例参数
+            **kwargs: 图例关键字参数
         """
         self.canvas.axes.legend(*args, **kwargs)
         self.canvas.update_figure()
     
     def grid(self, visible: bool = True, **kwargs):
         """
-        Toggle grid display.
+        切换网格显示。
         
-        Args:
-            visible: Whether to show grid
-            **kwargs: Grid arguments
+        参数:
+            visible: 是否显示网格
+            **kwargs: 网格参数
         """
         self.canvas.axes.grid(visible, **kwargs)
         self.canvas.update_figure()
     
     def clear_chart(self):
-        """Clear the chart."""
+        """清除图表。"""
         self.canvas.clear()
-        logger.debug("Chart cleared")
+        logger.debug("图表已清除")
     
     def refresh_chart(self):
-        """Refresh the chart display."""
+        """刷新图表显示。"""
         self.canvas.update_figure()
-        logger.debug("Chart refreshed")
+        logger.debug("图表已刷新")
     
     def save_chart(self, filepath: str, **kwargs):
         """
-        Save chart to file.
+        将图表保存到文件。
         
-        Args:
-            filepath: Output file path
-            **kwargs: Save arguments (dpi, format, etc.)
+        参数:
+            filepath: 输出文件路径
+            **kwargs: 保存参数（dpi, format 等）
         """
         self.canvas.figure.savefig(filepath, bbox_inches='tight', **kwargs)
-        logger.info(f"Chart saved to: {filepath}")
+        logger.info(f"图表已保存到: {filepath}")
     
     def display_figure(self, figure):
         """
-        Display an existing matplotlib figure.
+        显示现有的 matplotlib 图形。
         
-        Args:
-            figure: Matplotlib figure object
+        参数:
+            figure: Matplotlib figure 对象
         """
-        # Clear current figure
+        # 清除当前图形
         self.canvas.figure.clear()
         
-        # Copy axes from provided figure
+        # 从提供的图形中复制 axes
         for ax in figure.get_axes():
-            # Create new axes with same position
+            # 创建具有相同位置的新 axes
             new_ax = self.canvas.figure.add_axes(ax.get_position())
             
-            # Copy all artists (lines, patches, text, etc.)
+            # 复制所有 artist（线条、补丁、文本等）
             for artist in ax.get_children():
                 try:
                     new_ax.add_artist(artist)
                 except:
                     pass
             
-            # Copy properties
+            # 复制属性
             new_ax.set_xlim(ax.get_xlim())
             new_ax.set_ylim(ax.get_ylim())
             new_ax.set_xlabel(ax.get_xlabel())
@@ -310,31 +310,31 @@ class ChartWidget(QWidget):
                 new_ax.legend()
         
         self.canvas.update_figure()
-        logger.debug("External figure displayed")
+        logger.debug("外部图形已显示")
 
 
 class MultiChartWidget(QWidget):
     """
-    Widget to display multiple charts in a grid.
+    在网格中显示多个图表的小部件。
     
-    Provides:
-    - Multiple matplotlib canvases
-    - Grid layout
-    - Individual chart management
+    提供：
+    - 多个 matplotlib 画布
+    - 网格布局
+    - 单个图表管理
     """
     
     def __init__(self, parent: Optional[QWidget] = None,
                  rows: int = 2, cols: int = 2,
                  figsize: tuple = (12, 10), dpi: int = 100):
         """
-        Initialize MultiChartWidget.
+        初始化 MultiChartWidget。
         
-        Args:
-            parent: Parent widget
-            rows: Number of rows in grid
-            cols: Number of columns in grid
-            figsize: Overall figure size
-            dpi: Figure DPI
+        参数:
+            parent: 父小部件
+            rows: 网格中的行数
+            cols: 网格中的列数
+            figsize: 整体图形尺寸
+            dpi: 图形 DPI
         """
         super().__init__(parent)
         
@@ -343,10 +343,10 @@ class MultiChartWidget(QWidget):
         self.figsize = figsize
         self.dpi = dpi
         
-        # Create canvas with subplots
+        # 创建带有子图的画布
         self.canvas = MatplotlibCanvas(self, figsize=figsize, dpi=dpi)
         
-        # Clear default axes and create grid
+        # 清除默认 axes 并创建网格
         self.canvas.figure.clear()
         self.axes_grid = []
         
@@ -354,27 +354,27 @@ class MultiChartWidget(QWidget):
             ax = self.canvas.figure.add_subplot(rows, cols, i + 1)
             self.axes_grid.append(ax)
         
-        # Create layout
+        # 创建布局
         self._init_ui()
         
-        logger.info(f"MultiChartWidget initialized with {rows}x{cols} grid")
+        logger.info(f"MultiChartWidget 已初始化，网格大小为 {rows}x{cols}")
     
     def _init_ui(self):
-        """Initialize the user interface."""
+        """初始化用户界面。"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Add canvas
+        # 添加画布
         layout.addWidget(self.canvas)
         
-        # Add control buttons
+        # 添加控制按钮
         button_layout = QHBoxLayout()
         
-        self.refresh_button = QPushButton("Refresh All")
+        self.refresh_button = QPushButton("全部刷新")
         self.refresh_button.clicked.connect(self.refresh_all)
         button_layout.addWidget(self.refresh_button)
         
-        self.clear_button = QPushButton("Clear All")
+        self.clear_button = QPushButton("全部清除")
         self.clear_button.clicked.connect(self.clear_all)
         button_layout.addWidget(self.clear_button)
         
@@ -384,26 +384,26 @@ class MultiChartWidget(QWidget):
     
     def get_axes(self, index: int):
         """
-        Get axes at specific index.
+        获取指定索引处的 axes。
         
-        Args:
-            index: Axes index (0 to rows*cols-1)
+        参数:
+            index: axes 索引 (0 到 rows*cols-1)
             
-        Returns:
+        返回:
             Matplotlib axes
         """
         if 0 <= index < len(self.axes_grid):
             return self.axes_grid[index]
         else:
-            logger.error(f"Invalid axes index: {index}")
+            logger.error(f"无效的 axes 索引: {index}")
             return None
     
     def clear_axes(self, index: int):
         """
-        Clear specific axes.
+        清除指定的 axes。
         
-        Args:
-            index: Axes index
+        参数:
+            index: axes 索引
         """
         ax = self.get_axes(index)
         if ax:
@@ -411,24 +411,24 @@ class MultiChartWidget(QWidget):
             self.canvas.update_figure()
     
     def clear_all(self):
-        """Clear all axes."""
+        """清除所有 axes。"""
         for ax in self.axes_grid:
             ax.clear()
         self.canvas.update_figure()
-        logger.debug("All charts cleared")
+        logger.debug("所有图表已清除")
     
     def refresh_all(self):
-        """Refresh all charts."""
+        """刷新所有图表。"""
         self.canvas.update_figure()
-        logger.debug("All charts refreshed")
+        logger.debug("所有图表已刷新")
     
     def save_charts(self, filepath: str, **kwargs):
         """
-        Save all charts to file.
+        将所有图表保存到文件。
         
-        Args:
-            filepath: Output file path
-            **kwargs: Save arguments
+        参数:
+            filepath: 输出文件路径
+            **kwargs: 保存参数
         """
         self.canvas.figure.savefig(filepath, bbox_inches='tight', **kwargs)
-        logger.info(f"Charts saved to: {filepath}")
+        logger.info(f"图表已保存到: {filepath}")

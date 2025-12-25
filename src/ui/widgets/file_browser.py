@@ -1,11 +1,11 @@
 """
-File browser widget for browsing and selecting images.
+用于浏览和选择图像的文件浏览器小部件。
 
-Provides:
-- File list view with thumbnails
-- Folder navigation
-- File filtering and search
-- Selection management
+提供：
+- 带有缩略图的文件列表视图
+- 文件夹导航
+- 文件过滤和搜索
+- 选择管理
 """
 
 from pathlib import Path
@@ -27,9 +27,9 @@ logger = get_logger(__name__)
 
 
 class ThumbnailLoader(QThread):
-    """Thread for loading thumbnails asynchronously."""
+    """用于异步加载缩略图的线程。"""
     
-    thumbnail_loaded = pyqtSignal(str, QPixmap)  # path, pixmap
+    thumbnail_loaded = pyqtSignal(str, QPixmap)  # 路径, 像素图
     
     def __init__(self, image_paths: List[str], thumb_size: int = 128):
         super().__init__()
@@ -38,18 +38,18 @@ class ThumbnailLoader(QThread):
         self._is_running = True
     
     def run(self):
-        """Load thumbnails for all images."""
+        """为所有图像加载缩略图。"""
         for path in self.image_paths:
             if not self._is_running:
                 break
             
             try:
-                # Load image
+                # 加载图像
                 image = load_image(path)
                 if image is None:
                     continue
                 
-                # Resize to thumbnail
+                # 缩放到缩略图大小
                 h, w = image.shape[:2]
                 scale = min(self.thumb_size / w, self.thumb_size / h)
                 new_w, new_h = int(w * scale), int(h * scale)
@@ -57,7 +57,7 @@ class ThumbnailLoader(QThread):
                 import cv2
                 thumb = cv2.resize(image, (new_w, new_h))
                 
-                # Convert to QPixmap
+                # 转换为 QPixmap
                 height, width = thumb.shape[:2]
                 if len(thumb.shape) == 2:
                     qimage = QImage(
@@ -75,21 +75,21 @@ class ThumbnailLoader(QThread):
                 self.thumbnail_loaded.emit(path, pixmap)
                 
             except Exception as e:
-                logger.error(f"Error loading thumbnail for {path}: {e}")
+                logger.error(f"加载 {path} 的缩略图时出错: {e}")
     
     def stop(self):
-        """Stop loading thumbnails."""
+        """停止加载缩略图。"""
         self._is_running = False
 
 
 class FileBrowser(QWidget):
     """
-    File browser widget for image selection.
+    用于图像选择的文件浏览器小部件。
     
-    Signals:
-        file_selected: Emitted when a file is selected (file_path)
-        files_selected: Emitted when multiple files are selected (file_paths)
-        folder_changed: Emitted when folder changes (folder_path)
+    信号:
+        file_selected: 选择文件时发出 (file_path)
+        files_selected: 选择多个文件时发出 (file_paths)
+        folder_changed: 文件夹更改时发出 (folder_path)
     """
     
     file_selected = pyqtSignal(str)
@@ -98,10 +98,10 @@ class FileBrowser(QWidget):
     
     def __init__(self, parent: Optional[QWidget] = None):
         """
-        Initialize FileBrowser.
+        初始化 FileBrowser。
         
-        Args:
-            parent: Parent widget
+        参数:
+            parent: 父小部件
         """
         super().__init__(parent)
         
@@ -109,50 +109,50 @@ class FileBrowser(QWidget):
         self.file_paths: List[str] = []
         self.filtered_paths: List[str] = []
         
-        # Supported image formats
+        # 支持的图像格式
         self.supported_formats = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']
         
-        # Thumbnail loader
+        # 缩略图加载器
         self.thumb_loader: Optional[ThumbnailLoader] = None
         
         self._init_ui()
         
-        logger.info("FileBrowser initialized")
+        logger.info("FileBrowser 已初始化")
     
     def _init_ui(self):
-        """Initialize the user interface."""
+        """初始化用户界面。"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Folder selection
+        # 文件夹选择
         folder_layout = QHBoxLayout()
         
-        self.folder_label = QLabel("No folder selected")
+        self.folder_label = QLabel("未选择文件夹")
         self.folder_label.setStyleSheet("QLabel { color: #888; }")
         folder_layout.addWidget(self.folder_label, 1)
         
-        self.select_folder_btn = QPushButton("Browse...")
+        self.select_folder_btn = QPushButton("浏览...")
         self.select_folder_btn.clicked.connect(self._select_folder)
         folder_layout.addWidget(self.select_folder_btn)
         
         layout.addLayout(folder_layout)
         
-        # Search and filter
+        # 搜索和过滤
         search_layout = QHBoxLayout()
         
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Search files...")
+        self.search_edit.setPlaceholderText("搜索文件...")
         self.search_edit.textChanged.connect(self._filter_files)
         search_layout.addWidget(self.search_edit, 1)
         
         self.filter_combo = QComboBox()
-        self.filter_combo.addItems(["All Images", "JPG", "PNG", "BMP", "TIFF"])
+        self.filter_combo.addItems(["所有图像", "JPG", "PNG", "BMP", "TIFF"])
         self.filter_combo.currentTextChanged.connect(self._filter_files)
         search_layout.addWidget(self.filter_combo)
         
         layout.addLayout(search_layout)
         
-        # File list
+        # 文件列表
         self.file_list = QListWidget()
         self.file_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.file_list.setIconSize(QSize(128, 128))
@@ -163,45 +163,45 @@ class FileBrowser(QWidget):
         self.file_list.itemDoubleClicked.connect(self._on_item_double_clicked)
         layout.addWidget(self.file_list)
         
-        # Info label
-        self.info_label = QLabel("0 files")
+        # 信息标签
+        self.info_label = QLabel("0 个文件")
         self.info_label.setStyleSheet("QLabel { color: #888; font-size: 11px; }")
         layout.addWidget(self.info_label)
     
     def set_folder(self, folder_path: str):
         """
-        Set the current folder and load images.
+        设置当前文件夹并加载图像。
         
-        Args:
-            folder_path: Path to folder containing images
+        参数:
+            folder_path: 包含图像的文件夹路径
         """
         folder = Path(folder_path)
         
         if not folder.exists() or not folder.is_dir():
-            logger.error(f"Invalid folder: {folder_path}")
+            logger.error(f"无效文件夹: {folder_path}")
             return
         
         self.current_folder = folder
         self.folder_label.setText(str(folder))
         
-        # Stop previous thumbnail loader
+        # 停止之前的缩略图加载器
         if self.thumb_loader is not None:
             self.thumb_loader.stop()
             self.thumb_loader.wait()
         
-        # Load file list
+        # 加载文件列表
         self._load_files()
         
-        # Emit signal
+        # 发出信号
         self.folder_changed.emit(str(folder))
         
-        logger.info(f"Folder changed to: {folder_path}")
+        logger.info(f"文件夹已更改为: {folder_path}")
     
     def _select_folder(self):
-        """Open folder selection dialog."""
+        """打开文件夹选择对话框。"""
         folder = QFileDialog.getExistingDirectory(
             self,
-            "Select Image Folder",
+            "选择图像文件夹",
             str(self.current_folder) if self.current_folder else ""
         )
         
@@ -209,52 +209,55 @@ class FileBrowser(QWidget):
             self.set_folder(folder)
     
     def _load_files(self):
-        """Load files from current folder."""
+        """从当前文件夹加载文件。"""
         if self.current_folder is None:
             return
         
-        # Clear list
+        # 清除列表
         self.file_list.clear()
         self.file_paths.clear()
         
-        # Find image files
-        self.file_paths = list_files(
+        # 查找图像文件
+        file_paths = list_files(
             self.current_folder,
             extensions=self.supported_formats,
             recursive=False
         )
         
-        # Sort by filename
+        # 转换 Path 对象为字符串
+        self.file_paths = [str(p) for p in file_paths]
+        
+        # 按文件名排序
         self.file_paths.sort()
         
-        # Apply filter
+        # 应用过滤
         self._filter_files()
         
-        logger.info(f"Loaded {len(self.file_paths)} files")
+        logger.info(f"已加载 {len(self.file_paths)} 个文件")
     
     def _filter_files(self):
-        """Filter files based on search text and format filter."""
+        """根据搜索文本和格式过滤器过滤文件。"""
         if not self.file_paths:
             self.filtered_paths = []
             self._update_file_list()
             return
         
-        # Get filter criteria
+        # 获取过滤标准
         search_text = self.search_edit.text().lower()
         format_filter = self.filter_combo.currentText()
         
-        # Apply filters
+        # 应用过滤
         self.filtered_paths = []
         for path in self.file_paths:
             path_obj = Path(path)
             filename = path_obj.name.lower()
             
-            # Check search text
+            # 检查搜索文本
             if search_text and search_text not in filename:
                 continue
             
-            # Check format filter
-            if format_filter != "All Images":
+            # 检查格式过滤器
+            if format_filter != "所有图像":
                 ext = path_obj.suffix.lower()
                 if format_filter == "JPG" and ext not in ['.jpg', '.jpeg']:
                     continue
@@ -267,47 +270,47 @@ class FileBrowser(QWidget):
             
             self.filtered_paths.append(path)
         
-        # Update UI
+        # 更新 UI
         self._update_file_list()
     
     def _update_file_list(self):
-        """Update the file list widget."""
+        """更新文件列表小部件。"""
         self.file_list.clear()
         
-        # Add items
+        # 添加项目
         for path in self.filtered_paths:
             item = QListWidgetItem(Path(path).name)
-            item.setData(Qt.UserRole, path)  # Store full path
+            item.setData(Qt.UserRole, path)  # 存储完整路径
             self.file_list.addItem(item)
         
-        # Update info label
-        self.info_label.setText(f"{len(self.filtered_paths)} files")
+        # 更新信息标签
+        self.info_label.setText(f"{len(self.filtered_paths)} 个文件")
         
-        # Start thumbnail loading
+        # 开始加载缩略图
         if self.filtered_paths:
             self._load_thumbnails()
     
     def _load_thumbnails(self):
-        """Load thumbnails for visible files."""
-        # Stop previous loader
+        """为可见文件加载缩略图。"""
+        # 停止之前的加载器
         if self.thumb_loader is not None:
             self.thumb_loader.stop()
             self.thumb_loader.wait()
         
-        # Start new loader
+        # 开始新的加载器
         self.thumb_loader = ThumbnailLoader(self.filtered_paths, thumb_size=128)
         self.thumb_loader.thumbnail_loaded.connect(self._set_thumbnail)
         self.thumb_loader.start()
     
     def _set_thumbnail(self, path: str, pixmap: QPixmap):
         """
-        Set thumbnail for a file item.
+        为文件项目设置缩略图。
         
-        Args:
-            path: File path
-            pixmap: Thumbnail pixmap
+        参数:
+            path: 文件路径
+            pixmap: 缩略图像素图
         """
-        # Find item with this path
+        # 查找具有此路径的项目
         for i in range(self.file_list.count()):
             item = self.file_list.item(i)
             if item.data(Qt.UserRole) == path:
@@ -315,56 +318,59 @@ class FileBrowser(QWidget):
                 break
     
     def _on_selection_changed(self):
-        """Handle selection change."""
+        """处理选择更改。"""
         selected_items = self.file_list.selectedItems()
         
         if len(selected_items) == 0:
             return
         
-        # Get selected paths
+        # 获取选定的路径
         selected_paths = [item.data(Qt.UserRole) for item in selected_items]
         
-        # Emit signals
+        # 总是发出 file_selected 信号（单个选择）
         if len(selected_paths) == 1:
             self.file_selected.emit(selected_paths[0])
+            logger.debug(f"文件已选择: {selected_paths[0]}")
         
-        self.files_selected.emit(selected_paths)
+        # 同时发出多选信号
+        if len(selected_paths) > 0:
+            self.files_selected.emit(selected_paths)
     
     def _on_item_double_clicked(self, item: QListWidgetItem):
-        """Handle item double click."""
+        """处理项目双击。"""
         path = item.data(Qt.UserRole)
         self.file_selected.emit(path)
-        logger.info(f"File double-clicked: {path}")
+        logger.info(f"文件已双击: {path}")
     
     def get_selected_files(self) -> List[str]:
         """
-        Get list of selected file paths.
+        获取选定文件路径的列表。
         
-        Returns:
-            List of selected file paths
+        返回:
+            选定文件路径的列表
         """
         selected_items = self.file_list.selectedItems()
         return [item.data(Qt.UserRole) for item in selected_items]
     
     def get_all_files(self) -> List[str]:
         """
-        Get list of all file paths (after filtering).
+        获取所有文件路径的列表（过滤后）。
         
-        Returns:
-            List of all file paths
+        返回:
+            所有文件路径的列表
         """
         return self.filtered_paths.copy()
     
     def refresh(self):
-        """Refresh the file list."""
+        """刷新文件列表。"""
         if self.current_folder:
             self._load_files()
     
     def clear(self):
-        """Clear the file list."""
+        """清除文件列表。"""
         self.file_list.clear()
         self.file_paths.clear()
         self.filtered_paths.clear()
         self.current_folder = None
-        self.folder_label.setText("No folder selected")
-        self.info_label.setText("0 files")
+        self.folder_label.setText("未选择文件夹")
+        self.info_label.setText("0 个文件")

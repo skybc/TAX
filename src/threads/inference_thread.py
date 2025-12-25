@@ -1,10 +1,10 @@
 """
-Inference thread for asynchronous prediction.
+用于异步预测的推理线程。
 
-This module provides:
-- Asynchronous batch inference
-- Progress reporting
-- Result aggregation
+此模块提供：
+- 异步批量推理
+- 进度报告
+- 结果汇总
 """
 
 from typing import List, Dict, Optional
@@ -19,19 +19,19 @@ logger = get_logger(__name__)
 
 class InferenceThread(QThread):
     """
-    Thread for running inference asynchronously.
+    用于异步运行推理的线程。
     
-    Signals:
-        progress_updated: Emitted during processing (current, total, image_path)
-        image_completed: Emitted when one image is processed (index, image_path, success)
-        inference_completed: Emitted when all images are processed (results)
-        inference_failed: Emitted when inference fails (error_message)
+    信号:
+        progress_updated: 在处理期间发出（当前, 总计, 图像路径）
+        image_completed: 处理完一张图像时发出（索引, 图像路径, 是否成功）
+        inference_completed: 处理完所有图像时发出（结果）
+        inference_failed: 推理失败时发出（错误消息）
     """
     
-    progress_updated = pyqtSignal(int, int, str)  # current, total, image_path
-    image_completed = pyqtSignal(int, str, bool)  # index, image_path, success
-    inference_completed = pyqtSignal(dict)  # results dict
-    inference_failed = pyqtSignal(str)  # error message
+    progress_updated = pyqtSignal(int, int, str)  # 当前, 总计, 图像路径
+    image_completed = pyqtSignal(int, str, bool)  # 索引, 图像路径, 是否成功
+    inference_completed = pyqtSignal(dict)  # 结果字典
+    inference_failed = pyqtSignal(str)  # 错误消息
     
     def __init__(self,
                  checkpoint_path: str,
@@ -39,13 +39,13 @@ class InferenceThread(QThread):
                  output_dir: str,
                  config: Dict):
         """
-        Initialize inference thread.
+        初始化推理线程。
         
-        Args:
-            checkpoint_path: Path to model checkpoint
-            image_paths: List of image file paths
-            output_dir: Directory to save predictions
-            config: Inference configuration
+        参数:
+            checkpoint_path: 模型检查点路径
+            image_paths: 图像文件路径列表
+            output_dir: 保存预测结果的目录
+            config: 推理配置
         """
         super().__init__()
         
@@ -56,12 +56,12 @@ class InferenceThread(QThread):
         
         self._is_running = True
         
-        logger.info(f"Inference thread initialized: {len(image_paths)} images")
+        logger.info(f"推理线程已初始化: {len(image_paths)} 张图像")
     
     def run(self):
-        """Execute inference."""
+        """执行推理。"""
         try:
-            # Create predictor
+            # 创建预测器
             from src.core.predictor import create_predictor
             
             predictor = create_predictor(
@@ -74,10 +74,10 @@ class InferenceThread(QThread):
             )
             
             if predictor is None:
-                self.inference_failed.emit("Failed to create predictor")
+                self.inference_failed.emit("创建预测器失败")
                 return
             
-            # Create output directory
+            # 创建输出目录
             output_dir = Path(self.output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             
@@ -89,10 +89,10 @@ class InferenceThread(QThread):
                 overlay_dir = output_dir / "overlays"
                 overlay_dir.mkdir(exist_ok=True)
             
-            # Apply post-processing
+            # 应用后处理
             apply_post_processing = self.config.get('apply_post_processing', True)
             
-            # Results
+            # 结果
             results = {
                 'total': len(self.image_paths),
                 'successful': 0,
@@ -100,17 +100,17 @@ class InferenceThread(QThread):
                 'failed_files': []
             }
             
-            # Process each image
+            # 处理每张图像
             for i, image_path in enumerate(self.image_paths):
                 if not self._is_running:
-                    logger.info("Inference stopped by user")
+                    logger.info("推理被用户停止")
                     break
                 
                 try:
-                    # Update progress
+                    # 更新进度
                     self.progress_updated.emit(i + 1, len(self.image_paths), image_path)
                     
-                    # Load and predict
+                    # 加载并预测
                     from src.utils.image_utils import load_image, save_image
                     from src.utils.mask_utils import save_mask
                     
@@ -121,7 +121,7 @@ class InferenceThread(QThread):
                         self.image_completed.emit(i, image_path, False)
                         continue
                     
-                    # Predict
+                    # 预测
                     use_tta = self.config.get('use_tta', False)
                     threshold = self.config.get('threshold', 0.5)
                     
@@ -134,7 +134,7 @@ class InferenceThread(QThread):
                     else:
                         mask = predictor.predict(image, threshold=threshold)
                     
-                    # Post-processing
+                    # 后处理
                     if apply_post_processing:
                         from src.utils.post_processing import refine_mask
                         
@@ -147,12 +147,12 @@ class InferenceThread(QThread):
                             closing_size=self.config.get('closing_kernel_size', 5)
                         )
                     
-                    # Save mask
+                    # 保存掩码
                     image_name = Path(image_path).stem
                     mask_path = masks_dir / f"{image_name}_mask.png"
                     save_mask(mask, str(mask_path))
                     
-                    # Save overlay
+                    # 保存叠加图
                     if save_overlay:
                         overlay = predictor._create_overlay(
                             image, mask,
@@ -166,21 +166,21 @@ class InferenceThread(QThread):
                     self.image_completed.emit(i, image_path, True)
                     
                 except Exception as e:
-                    logger.error(f"Failed to process {image_path}: {e}")
+                    logger.error(f"处理 {image_path} 失败: {e}")
                     results['failed'] += 1
                     results['failed_files'].append(image_path)
                     self.image_completed.emit(i, image_path, False)
             
-            # Complete
+            # 完成
             if self._is_running:
-                logger.info(f"Inference completed: {results['successful']}/{results['total']} successful")
+                logger.info(f"推理完成: {results['successful']}/{results['total']} 成功")
                 self.inference_completed.emit(results)
             
         except Exception as e:
-            logger.error(f"Inference error: {e}", exc_info=True)
+            logger.error(f"推理错误: {e}", exc_info=True)
             self.inference_failed.emit(str(e))
     
     def stop(self):
-        """Stop inference."""
+        """停止推理。"""
         self._is_running = False
-        logger.info("Inference stop requested")
+        logger.info("已请求停止推理")

@@ -1,8 +1,7 @@
 """
-Main window for the Industrial Defect Segmentation System.
+工业缺陷分割系统的主窗口。
 
-This is the primary UI component that hosts all other widgets and manages
-the overall application state.
+这是主要的 UI 组件，承载所有其他小部件并管理整个应用程序状态。
 """
 
 from PyQt5.QtCore import Qt
@@ -27,24 +26,24 @@ logger = get_logger(__name__)
 
 class MainWindow(QMainWindow):
     """
-    Main application window.
+    主应用程序窗口。
     
-    This window provides the primary interface for the application including:
-    - Menu bar with File, Edit, View, Tools, Help menus
-    - Toolbar for quick access to common actions
-    - Central widget with image canvas and annotation tools
-    - Side panels for file browser and properties
-    - Status bar for displaying information
+    此窗口提供应用程序的主要界面，包括：
+    - 带有文件、编辑、视图、工具、帮助菜单的菜单栏
+    - 用于快速访问常用操作的工具栏
+    - 带有图像画布和标注工具的中央小部件
+    - 用于文件浏览器和属性的侧面板
+    - 用于显示信息的状态栏
     """
     
     def __init__(self, config: dict, paths_config: dict, hyperparams: dict):
         """
-        Initialize main window.
+        初始化主窗口。
         
-        Args:
-            config: Application configuration
-            paths_config: Paths configuration
-            hyperparams: Model hyperparameters configuration
+        参数:
+            config: 应用程序配置
+            paths_config: 路径配置
+            hyperparams: 模型超参数配置
         """
         super().__init__()
         
@@ -52,17 +51,17 @@ class MainWindow(QMainWindow):
         self.paths_config = paths_config
         self.hyperparams = hyperparams
         
-        # Initialize DataManager
+        # 初始化 DataManager
         from pathlib import Path
         data_root = Path(paths_config['paths']['data_root'])
         cache_size = config['performance']['max_cache_size']
         self.data_manager = DataManager(str(data_root), cache_size_mb=cache_size)
         
-        # Current state
+        # 当前状态
         self.current_image_path: str = None
         self.current_image_index: int = -1
         
-        # Window settings
+        # 窗口设置
         self.setWindowTitle(config['app']['name'])
         self.setGeometry(
             100, 100,
@@ -70,237 +69,237 @@ class MainWindow(QMainWindow):
             config['ui']['window_height']
         )
         
-        # Initialize UI components
+        # 初始化 UI 组件
         self._init_ui()
         self._create_menus()
         self._create_toolbar()
         self._create_statusbar()
         self._connect_signals()
         
-        logger.info("Main window initialized")
+        logger.info("主窗口已初始化")
     
     def _init_ui(self):
-        """Initialize the user interface."""
-        # Create central widget with main layout
+        """初始化用户界面。"""
+        # 创建带有主布局的中央小部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QHBoxLayout(central_widget)
         
-        # Create main splitter for resizable panels
+        # 创建用于可调整大小面板的主拆分器
         self.main_splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(self.main_splitter)
         
-        # Left panel - File browser
+        # 左侧面板 - 文件浏览器
         self.file_browser = FileBrowser(self)
         self.main_splitter.addWidget(self.file_browser)
         
-        # Center panel - Image canvas
+        # 中间面板 - 图像画布
         self.image_canvas = ImageCanvasWithInfo(self)
         self.main_splitter.addWidget(self.image_canvas)
         
-        # Right panel - Properties (placeholder for now)
+        # 右侧面板 - 属性（目前为占位符）
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
-        right_layout.addWidget(QLabel("Properties Panel\n(To be implemented)"))
+        right_layout.addWidget(QLabel("属性面板\n（待实现）"))
         self.main_splitter.addWidget(right_panel)
         
-        # Set initial sizes for splitter
+        # 设置拆分器的初始大小
         self.main_splitter.setSizes([250, 900, 250])
     
     def _create_menus(self):
-        """Create menu bar and menus."""
+        """创建菜单栏和菜单。"""
         menubar = self.menuBar()
         
-        # File menu
-        file_menu = menubar.addMenu("&File")
+        # 文件菜单
+        file_menu = menubar.addMenu("文件(&F)")
         
-        # File > Import
-        import_action = QAction("&Import Images...", self)
+        # 文件 > 导入
+        import_action = QAction("导入图像(&I)...", self)
         import_action.setShortcut("Ctrl+I")
-        import_action.setStatusTip("Import images or videos")
+        import_action.setStatusTip("导入图像或视频")
         import_action.triggered.connect(self._on_import)
         file_menu.addAction(import_action)
         
-        # File > Open Project
-        open_action = QAction("&Open Project...", self)
+        # 文件 > 打开项目
+        open_action = QAction("打开项目(&O)...", self)
         open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open existing project")
+        open_action.setStatusTip("打开现有项目")
         file_menu.addAction(open_action)
         
-        # File > Save
-        save_action = QAction("&Save", self)
+        # 文件 > 保存
+        save_action = QAction("保存(&S)", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save current annotations")
+        save_action.setStatusTip("保存当前标注")
         file_menu.addAction(save_action)
         
         file_menu.addSeparator()
         
-        # File > Exit
-        exit_action = QAction("E&xit", self)
+        # 文件 > 退出
+        exit_action = QAction("退出(&X)", self)
         exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip("Exit application")
+        exit_action.setStatusTip("退出应用程序")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         
-        # Edit menu
-        edit_menu = menubar.addMenu("&Edit")
+        # 编辑菜单
+        edit_menu = menubar.addMenu("编辑(&E)")
         
-        undo_action = QAction("&Undo", self)
+        undo_action = QAction("撤销(&U)", self)
         undo_action.setShortcut("Ctrl+Z")
         edit_menu.addAction(undo_action)
         
-        redo_action = QAction("&Redo", self)
+        redo_action = QAction("重做(&R)", self)
         redo_action.setShortcut("Ctrl+Y")
         edit_menu.addAction(redo_action)
         
-        # View menu
-        view_menu = menubar.addMenu("&View")
+        # 视图菜单
+        view_menu = menubar.addMenu("视图(&V)")
         
-        zoom_in_action = QAction("Zoom &In", self)
+        zoom_in_action = QAction("放大(&I)", self)
         zoom_in_action.setShortcut("Ctrl++")
         view_menu.addAction(zoom_in_action)
         
-        zoom_out_action = QAction("Zoom &Out", self)
+        zoom_out_action = QAction("缩小(&O)", self)
         zoom_out_action.setShortcut("Ctrl+-")
         view_menu.addAction(zoom_out_action)
         
-        # Tools menu
-        tools_menu = menubar.addMenu("&Tools")
+        # 工具菜单
+        tools_menu = menubar.addMenu("工具(&T)")
         
-        train_action = QAction("&Train Model...", self)
-        train_action.setStatusTip("Open model training dialog")
+        train_action = QAction("训练模型(&T)...", self)
+        train_action.setStatusTip("打开模型训练对话框")
         train_action.triggered.connect(self._on_train_model)
         tools_menu.addAction(train_action)
         
-        predict_action = QAction("&Predict...", self)
-        predict_action.setStatusTip("Run inference on images")
+        predict_action = QAction("预测(&P)...", self)
+        predict_action.setStatusTip("对图像运行推理")
         predict_action.triggered.connect(self._on_predict)
         tools_menu.addAction(predict_action)
         
         tools_menu.addSeparator()
         
-        report_action = QAction("Generate &Report...", self)
-        report_action.setStatusTip("Generate analysis report")
+        report_action = QAction("生成报告(&R)...", self)
+        report_action.setStatusTip("生成分析报告")
         report_action.triggered.connect(self._on_generate_report)
         tools_menu.addAction(report_action)
         
         tools_menu.addSeparator()
         
-        export_action = QAction("&Export Annotations...", self)
-        export_action.setStatusTip("Export annotations to COCO/YOLO format")
+        export_action = QAction("导出标注(&E)...", self)
+        export_action.setStatusTip("将标注导出为 COCO/YOLO 格式")
         export_action.triggered.connect(self._on_export)
         tools_menu.addAction(export_action)
         
-        # Help menu
-        help_menu = menubar.addMenu("&Help")
+        # 帮助菜单
+        help_menu = menubar.addMenu("帮助(&H)")
         
-        about_action = QAction("&About", self)
+        about_action = QAction("关于(&A)", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
     
     def _create_toolbar(self):
-        """Create toolbar with quick actions."""
-        toolbar = self.addToolBar("Main Toolbar")
+        """创建带有快速操作的工具栏。"""
+        toolbar = self.addToolBar("主工具栏")
         toolbar.setMovable(False)
         
-        # Add placeholder actions
-        # TODO: Add actual toolbar buttons with icons
+        # 添加占位符操作
+        # TODO: 添加带有图标的实际工具栏按钮
         pass
     
     def _create_statusbar(self):
-        """Create status bar."""
+        """创建状态栏。"""
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         
-        # Add permanent widgets to status bar
-        self.status_label = QLabel("Ready")
+        # 向状态栏添加永久小部件
+        self.status_label = QLabel("就绪")
         self.statusBar.addWidget(self.status_label)
         
-        # Add coordinates label (for mouse position)
-        self.coords_label = QLabel("Position: (0, 0)")
+        # 添加坐标标签（用于鼠标位置）
+        self.coords_label = QLabel("位置: (0, 0)")
         self.statusBar.addPermanentWidget(self.coords_label)
     
     def _connect_signals(self):
-        """Connect signals and slots."""
-        # File browser signals
+        """连接信号和槽。"""
+        # 文件浏览器信号
         self.file_browser.file_selected.connect(self._on_file_selected)
         self.file_browser.folder_changed.connect(self._on_folder_changed)
         
-        # Image canvas signals
+        # 图像画布信号
         self.image_canvas.canvas.mouse_moved.connect(self._on_mouse_moved)
         
-        logger.debug("Signals connected")
+        logger.debug("信号已连接")
     
     def _on_file_selected(self, file_path: str):
         """
-        Handle file selection from browser.
+        处理从浏览器选择的文件。
         
-        Args:
-            file_path: Path to selected file
+        参数:
+            file_path: 所选文件的路径
         """
-        logger.info(f"File selected: {file_path}")
+        logger.info(f"已选择文件: {file_path}")
         
-        # Load image using DataManager
+        # 使用 DataManager 加载图像
         image = self.data_manager.load_image(file_path)
         
         if image is not None:
-            # Display in canvas
+            # 在画布中显示
             self.image_canvas.load_image(image, file_path)
             self.current_image_path = file_path
             
-            # Update status bar
-            self.status_label.setText(f"Loaded: {file_path}")
+            # 更新状态栏
+            self.status_label.setText(f"已加载: {file_path}")
         else:
             QMessageBox.warning(
                 self,
-                "Error",
-                f"Failed to load image: {file_path}"
+                "错误",
+                f"加载图像失败: {file_path}"
             )
     
     def _on_folder_changed(self, folder_path: str):
         """
-        Handle folder change in browser.
+        处理浏览器中的文件夹更改。
         
-        Args:
-            folder_path: Path to new folder
+        参数:
+            folder_path: 新文件夹的路径
         """
-        logger.info(f"Folder changed: {folder_path}")
-        self.status_label.setText(f"Folder: {folder_path}")
+        logger.info(f"文件夹已更改: {folder_path}")
+        self.status_label.setText(f"文件夹: {folder_path}")
     
     def _on_mouse_moved(self, x: int, y: int):
         """
-        Handle mouse move on canvas.
+        处理画布上的鼠标移动。
         
-        Args:
-            x: X coordinate
-            y: Y coordinate
+        参数:
+            x: X 坐标
+            y: Y 坐标
         """
-        self.coords_label.setText(f"Position: ({x}, {y})")
+        self.coords_label.setText(f"位置: ({x}, {y})")
     
     def _on_import(self):
-        """Handle import action."""
+        """处理导入操作。"""
         dialog = ImportDialog(self)
         
         if dialog.exec_() == ImportDialog.Accepted:
             imported_files = dialog.get_import_files()
             
             if imported_files:
-                logger.info(f"Imported {len(imported_files)} file(s)")
+                logger.info(f"已导入 {len(imported_files)} 个文件")
                 
-                # If importing a folder, set it in file browser
+                # 如果导入文件夹，则在文件浏览器中设置它
                 if dialog.import_type == "folder":
                     self.file_browser.set_folder(imported_files[0] if len(imported_files) == 1 else dialog.import_source)
                 elif dialog.import_type == "files":
-                    # Load files into data manager
+                    # 将文件加载到数据管理器中
                     self.data_manager.dataset['all'] = imported_files
-                    # Optionally set folder to parent of first file
+                    # 可选地将文件夹设置为第一个文件的父级
                     if imported_files:
                         from pathlib import Path
                         parent_folder = Path(imported_files[0]).parent
                         self.file_browser.set_folder(str(parent_folder))
                 elif dialog.import_type == "video":
-                    # Extract video frames
+                    # 提取视频帧
                     video_path = imported_files[0]
                     video_options = dialog.get_video_options()
                     
@@ -309,8 +308,8 @@ class MainWindow(QMainWindow):
                     
                     QMessageBox.information(
                         self,
-                        "Video Import",
-                        f"Extracting frames from video...\nThis may take a while."
+                        "视频导入",
+                        f"正在从视频中提取帧...\n这可能需要一段时间。"
                     )
                     
                     frame_paths = self.data_manager.save_video_frames(
@@ -324,39 +323,39 @@ class MainWindow(QMainWindow):
                         self.file_browser.set_folder(str(output_dir))
                         QMessageBox.information(
                             self,
-                            "Success",
-                            f"Extracted {len(frame_paths)} frames"
+                            "成功",
+                            f"已提取 {len(frame_paths)} 帧"
                         )
                 
-                self.status_label.setText(f"Imported {len(imported_files)} file(s)")
+                self.status_label.setText(f"已导入 {len(imported_files)} 个文件")
         
-        logger.info("Import dialog closed")
+        logger.info("导入对话框已关闭")
     
     def _on_export(self):
-        """Handle export action."""
-        # Check if we have any annotated data
+        """处理导出操作。"""
+        # 检查是否有任何标注数据
         if not self.data_manager.dataset.get('all'):
             QMessageBox.warning(
                 self,
-                "No Data",
-                "No images loaded. Please import images first."
+                "无数据",
+                "未加载图像。请先导入图像。"
             )
             return
         
-        # For now, use dummy mask paths (in real usage, these come from AnnotationManager)
-        # TODO: Get actual mask paths from annotation manager
+        # 目前使用虚拟掩码路径（在实际使用中，这些来自 AnnotationManager）
+        # TODO: 从标注管理器获取实际掩码路径
         image_paths = self.data_manager.dataset.get('all', [])
         
         if not image_paths:
             QMessageBox.warning(
                 self,
-                "No Images",
-                "No images available for export."
+                "无图像",
+                "没有可供导出的图像。"
             )
             return
         
-        # Create dummy mask paths for demonstration
-        # In real usage: mask_paths = [annotation_manager.get_mask_path(img) for img in image_paths]
+        # 创建用于演示的虚拟掩码路径
+        # 实际使用中: mask_paths = [annotation_manager.get_mask_path(img) for img in image_paths]
         from pathlib import Path
         masks_dir = Path(self.paths_config['paths']['masks'])
         mask_paths = []
@@ -370,13 +369,13 @@ class MainWindow(QMainWindow):
         if not mask_paths:
             QMessageBox.information(
                 self,
-                "No Annotations",
-                f"No annotation masks found in {masks_dir}.\n\n"
-                "Please annotate some images first before exporting."
+                "无标注",
+                f"在 {masks_dir} 中未找到标注掩码。\n\n"
+                "请在导出前先标注一些图像。"
             )
             return
         
-        # Match image and mask lists
+        # 匹配图像和掩码列表
         matched_images = []
         matched_masks = []
         
@@ -391,69 +390,69 @@ class MainWindow(QMainWindow):
         if not matched_images:
             QMessageBox.warning(
                 self,
-                "No Matching Pairs",
-                "No matching image-mask pairs found."
+                "无匹配对",
+                "未找到匹配的图像-掩码对。"
             )
             return
         
-        # Open export dialog
+        # 打开导出对话框
         dialog = ExportDialog(matched_images, matched_masks, self)
         dialog.exec_()
         
-        logger.info("Export dialog closed")
+        logger.info("导出对话框已关闭")
     
     def _on_train_model(self):
-        """Handle train model action."""
-        # Check if we have data
+        """处理训练模型操作。"""
+        # 检查是否有数据
         if not self.data_manager.dataset.get('all'):
             reply = QMessageBox.question(
                 self,
-                "No Data",
-                "No images loaded. Training requires prepared data with images and masks.\n\n"
-                "Do you want to continue anyway? (You can configure paths in the training dialog)",
+                "无数据",
+                "未加载图像。训练需要准备好包含图像和掩码的数据。\n\n"
+                "是否仍要继续？（您可以在训练对话框中配置路径）",
                 QMessageBox.Yes | QMessageBox.No
             )
             
             if reply == QMessageBox.No:
                 return
         
-        # Open training dialog
+        # 打开训练对话框
         dialog = TrainConfigDialog(self.config, self.paths_config, self)
         dialog.exec_()
         
-        logger.info("Training dialog closed")
+        logger.info("训练对话框已关闭")
     
     def _on_predict(self):
-        """Handle predict action."""
-        # Check if we have trained models
+        """处理预测操作。"""
+        # 检查是否有训练好的模型
         from pathlib import Path
         models_dir = Path(self.paths_config['paths']['trained_models'])
         
         if not models_dir.exists() or not any(models_dir.glob('*.pth')):
             reply = QMessageBox.question(
                 self,
-                "No Models",
-                "No trained models found. Prediction requires a trained model checkpoint.\n\n"
-                "Do you want to continue anyway? (You can specify checkpoint path in the dialog)",
+                "无模型",
+                "未找到训练好的模型。预测需要训练好的模型检查点。\n\n"
+                "是否仍要继续？（您可以在对话框中指定检查点路径）",
                 QMessageBox.Yes | QMessageBox.No
             )
             
             if reply == QMessageBox.No:
                 return
         
-        # Open prediction dialog
+        # 打开预测对话框
         dialog = PredictDialog(self.config, self.paths_config, self)
         dialog.exec_()
         
-        logger.info("Prediction dialog closed")
+        logger.info("预测对话框已关闭")
     
     def _on_generate_report(self):
-        """Handle generate report action."""
-        # Check if we have data to analyze
+        """处理生成报告操作。"""
+        # 检查是否有要分析的数据
         from pathlib import Path
         masks_dir = Path(self.paths_config['paths']['masks'])
         
-        # Check for masks or predictions
+        # 检查掩码或预测
         has_masks = masks_dir.exists() and any(masks_dir.glob('*.png'))
         
         predictions_dir = Path(self.paths_config['paths']['predictions'])
@@ -464,30 +463,30 @@ class MainWindow(QMainWindow):
         if not has_masks and not has_predictions:
             reply = QMessageBox.question(
                 self,
-                "No Data",
-                "No mask files or predictions found.\n\n"
-                "Report generation requires mask files for analysis.\n\n"
-                "Do you want to continue anyway? (You can specify mask directory in the dialog)",
+                "无数据",
+                "未找到掩码文件或预测结果。\n\n"
+                "生成报告需要掩码文件进行分析。\n\n"
+                "是否仍要继续？（您可以在对话框中指定掩码目录）",
                 QMessageBox.Yes | QMessageBox.No
             )
             
             if reply == QMessageBox.No:
                 return
         
-        # Open report dialog
+        # 打开报告对话框
         dialog = ReportDialog(self.config, self.paths_config, self)
         dialog.exec_()
         
-        logger.info("Report dialog closed")
+        logger.info("报告对话框已关闭")
     
     def _show_about(self):
-        """Show about dialog."""
+        """显示关于对话框。"""
         QMessageBox.about(
             self,
-            f"About {self.config['app']['name']}",
+            f"关于 {self.config['app']['name']}",
             f"{self.config['app']['name']}\n"
-            f"Version: {self.config['app']['version']}\n"
-            f"Author: {self.config['app']['author']}\n\n"
-            f"A complete industrial defect segmentation system with "
-            f"SAM auto-annotation, model training, and inference."
+            f"版本: {self.config['app']['version']}\n"
+            f"作者: {self.config['app']['author']}\n\n"
+            f"一个完整的工业缺陷分割系统，具有 "
+            f"SAM 自动标注、模型训练和推理功能。"
         )

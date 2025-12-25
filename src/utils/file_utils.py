@@ -1,8 +1,7 @@
 """
-File I/O utility functions.
+文件 I/O 实用函数。
 
-This module provides functions for file operations including reading,
-writing, and managing file paths.
+此模块提供文件操作函数，包括读取、写入和管理文件路径。
 """
 
 import json
@@ -20,13 +19,13 @@ logger = get_logger(__name__)
 
 def ensure_dir(path: Union[str, Path]) -> Path:
     """
-    Ensure a directory exists, create if it doesn't.
+    确保目录存在，如果不存在则创建。
     
-    Args:
-        path: Directory path
+    参数:
+        path: 目录路径
         
-    Returns:
-        Path object of the directory
+    返回:
+        目录的 Path 对象
     """
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -35,36 +34,36 @@ def ensure_dir(path: Union[str, Path]) -> Path:
 
 def load_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Load YAML configuration file.
+    加载 YAML 配置文件。
     
-    Args:
-        file_path: Path to YAML file
+    参数:
+        file_path: YAML 文件路径
         
-    Returns:
-        Dictionary containing YAML content
+    返回:
+        包含 YAML 内容的字典
         
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        yaml.YAMLError: If file is not valid YAML
+    抛出:
+        FileNotFoundError: 如果文件不存在
+        yaml.YAMLError: 如果文件不是有效的 YAML
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        raise FileNotFoundError(f"YAML file not found: {file_path}")
+        raise FileNotFoundError(f"未找到 YAML 文件: {file_path}")
     
     with open(file_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     
-    logger.debug(f"Loaded YAML config from {file_path}")
+    logger.debug(f"已从 {file_path} 加载 YAML 配置")
     return config
 
 
 def save_yaml(data: Dict[str, Any], file_path: Union[str, Path]) -> None:
     """
-    Save dictionary to YAML file.
+    将字典保存到 YAML 文件。
     
-    Args:
-        data: Dictionary to save
-        file_path: Path to output YAML file
+    参数:
+        data: 要保存的字典
+        file_path: 输出 YAML 文件的路径
     """
     file_path = Path(file_path)
     ensure_dir(file_path.parent)
@@ -72,42 +71,42 @@ def save_yaml(data: Dict[str, Any], file_path: Union[str, Path]) -> None:
     with open(file_path, 'w', encoding='utf-8') as f:
         yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
     
-    logger.debug(f"Saved YAML config to {file_path}")
+    logger.debug(f"已将 YAML 配置保存到 {file_path}")
 
 
 def load_json(file_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Load JSON file.
+    加载 JSON 文件。
     
-    Args:
-        file_path: Path to JSON file
+    参数:
+        file_path: JSON 文件路径
         
-    Returns:
-        Dictionary containing JSON content
+    返回:
+        包含 JSON 内容的字典
         
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        json.JSONDecodeError: If file is not valid JSON
+    抛出:
+        FileNotFoundError: 如果文件不存在
+        json.JSONDecodeError: 如果文件不是有效的 JSON
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        raise FileNotFoundError(f"JSON file not found: {file_path}")
+        raise FileNotFoundError(f"未找到 JSON 文件: {file_path}")
     
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    logger.debug(f"Loaded JSON from {file_path}")
+    logger.debug(f"已从 {file_path} 加载 JSON")
     return data
 
 
 def save_json(data: Dict[str, Any], file_path: Union[str, Path], indent: int = 2) -> None:
     """
-    Save dictionary to JSON file.
+    将字典保存到 JSON 文件。
     
-    Args:
-        data: Dictionary to save
-        file_path: Path to output JSON file
-        indent: Indentation level for pretty printing
+    参数:
+        data: 要保存的字典
+        file_path: 输出 JSON 文件的路径
+        indent: 用于美化打印的缩进级别
     """
     file_path = Path(file_path)
     ensure_dir(file_path.parent)
@@ -115,7 +114,7 @@ def save_json(data: Dict[str, Any], file_path: Union[str, Path], indent: int = 2
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=indent, ensure_ascii=False)
     
-    logger.debug(f"Saved JSON to {file_path}")
+    logger.debug(f"已将 JSON 保存到 {file_path}")
 
 
 def list_files(
@@ -124,19 +123,19 @@ def list_files(
     recursive: bool = False
 ) -> List[Path]:
     """
-    List files in a directory with optional filtering by extension.
+    列出目录中的文件，并可选择按扩展名过滤。
     
-    Args:
-        directory: Directory path to search
-        extensions: List of file extensions to filter (e.g., ['.jpg', '.png'])
-        recursive: Whether to search recursively in subdirectories
+    参数:
+        directory: 要搜索的目录路径
+        extensions: 要过滤的文件扩展名列表（例如 ['.jpg', '.png']）
+        recursive: 是否在子目录中递归搜索
         
-    Returns:
-        List of Path objects for matching files
+    返回:
+        匹配文件的 Path 对象列表
     """
     directory = Path(directory)
     if not directory.exists():
-        logger.warning(f"Directory not found: {directory}")
+        logger.warning(f"未找到目录: {directory}")
         return []
     
     if recursive:
@@ -150,87 +149,87 @@ def list_files(
             if extensions is None or file_path.suffix.lower() in extensions:
                 files.append(file_path)
     
-    logger.debug(f"Found {len(files)} files in {directory}")
+    logger.debug(f"在 {directory} 中找到 {len(files)} 个文件")
     return sorted(files)
 
 
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """
-    Copy file from source to destination.
+    将文件从源复制到目的地。
     
-    Args:
-        src: Source file path
-        dst: Destination file path
+    参数:
+        src: 源文件路径
+        dst: 目的文件路径
     """
     src = Path(src)
     dst = Path(dst)
     
     if not src.exists():
-        raise FileNotFoundError(f"Source file not found: {src}")
+        raise FileNotFoundError(f"未找到源文件: {src}")
     
     ensure_dir(dst.parent)
     shutil.copy2(src, dst)
-    logger.debug(f"Copied {src} to {dst}")
+    logger.debug(f"已将 {src} 复制到 {dst}")
 
 
 def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """
-    Move file from source to destination.
+    将文件从源移动到目的地。
     
-    Args:
-        src: Source file path
-        dst: Destination file path
+    参数:
+        src: 源文件路径
+        dst: 目的文件路径
     """
     src = Path(src)
     dst = Path(dst)
     
     if not src.exists():
-        raise FileNotFoundError(f"Source file not found: {src}")
+        raise FileNotFoundError(f"未找到源文件: {src}")
     
     ensure_dir(dst.parent)
     shutil.move(str(src), str(dst))
-    logger.debug(f"Moved {src} to {dst}")
+    logger.debug(f"已将 {src} 移动到 {dst}")
 
 
 def delete_file(file_path: Union[str, Path]) -> None:
     """
-    Delete a file.
+    删除文件。
     
-    Args:
-        file_path: Path to file to delete
+    参数:
+        file_path: 要删除的文件路径
     """
     file_path = Path(file_path)
     if file_path.exists():
         file_path.unlink()
-        logger.debug(f"Deleted {file_path}")
+        logger.debug(f"已删除 {file_path}")
 
 
 def get_file_size(file_path: Union[str, Path]) -> int:
     """
-    Get file size in bytes.
+    获取文件大小（字节）。
     
-    Args:
-        file_path: Path to file
+    参数:
+        file_path: 文件路径
         
-    Returns:
-        File size in bytes
+    返回:
+        文件大小（字节）
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+        raise FileNotFoundError(f"未找到文件: {file_path}")
     
     return file_path.stat().st_size
 
 
 def format_size(size_bytes: int) -> str:
     """
-    Format file size in human-readable format.
+    以人类可读的格式格式化文件大小。
     
-    Args:
-        size_bytes: Size in bytes
+    参数:
+        size_bytes: 字节大小
         
-    Returns:
-        Formatted string (e.g., "1.5 MB")
+    返回:
+        格式化后的字符串（例如 "1.5 MB"）
     """
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_bytes < 1024.0:

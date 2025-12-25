@@ -1,11 +1,11 @@
 """
-SAM (Segment Anything Model) handler for auto-annotation.
+用于自动标注的 SAM (Segment Anything Model) 处理程序。
 
-This module provides:
-- SAM model loading and initialization
-- Image encoding
-- Prompt-based mask prediction (points, boxes)
-- Mask post-processing
+此模块提供：
+- SAM 模型的加载和初始化
+- 图像编码
+- 基于提示的掩码预测（点、框）
+- 掩码后处理
 """
 
 from pathlib import Path
@@ -21,21 +21,21 @@ logger = get_logger(__name__)
 
 class SAMHandler:
     """
-    Handler for Segment Anything Model (SAM).
+    Segment Anything Model (SAM) 处理程序。
     
-    Provides functionality for:
-    - Loading SAM model
-    - Encoding images
-    - Predicting masks from prompts (points, boxes)
-    - Managing model state
+    提供以下功能：
+    - 加载 SAM 模型
+    - 编码图像
+    - 根据提示（点、框）预测掩码
+    - 管理模型状态
     
-    Attributes:
-        model_type: SAM model type ('vit_h', 'vit_l', 'vit_b')
-        device: Computation device ('cuda' or 'cpu')
-        sam_model: SAM model instance
-        image_encoder: Image encoder module
-        prompt_encoder: Prompt encoder module
-        mask_decoder: Mask decoder module
+    属性:
+        model_type: SAM 模型类型 ('vit_h', 'vit_l', 'vit_b')
+        device: 计算设备 ('cuda' 或 'cpu')
+        sam_model: SAM 模型实例
+        image_encoder: 图像编码器模块
+        prompt_encoder: 提示编码器模块
+        mask_decoder: 掩码解码器模块
     """
     
     def __init__(self, 
@@ -43,108 +43,108 @@ class SAMHandler:
                  checkpoint_path: Optional[str] = None,
                  device: Optional[str] = None):
         """
-        Initialize SAM handler.
+        初始化 SAM 处理程序。
         
-        Args:
-            model_type: Model type ('vit_h', 'vit_l', 'vit_b')
-            checkpoint_path: Path to model checkpoint
-            device: Device to use ('cuda', 'cpu', or None for auto)
+        参数:
+            model_type: 模型类型 ('vit_h', 'vit_l', 'vit_b')
+            checkpoint_path: 模型检查点路径
+            device: 要使用的设备（'cuda'、'cpu' 或 None 表示自动选择）
         """
         self.model_type = model_type
         self.checkpoint_path = checkpoint_path
         
-        # Set device
+        # 设置设备
         if device is None:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device(device)
         
-        # Model components
+        # 模型组件
         self.sam_model = None
         self.predictor = None
         
-        # Encoded image features
+        # 编码后的图像特征
         self.encoded_image = None
         self.current_image_shape = None
         
-        logger.info(f"SAMHandler initialized - Model: {model_type}, Device: {self.device}")
+        logger.info(f"SAMHandler 已初始化 - 模型: {model_type}, 设备: {self.device}")
     
     def load_model(self, checkpoint_path: Optional[str] = None) -> bool:
         """
-        Load SAM model from checkpoint.
+        从检查点加载 SAM 模型。
         
-        Args:
-            checkpoint_path: Path to checkpoint file
+        参数:
+            checkpoint_path: 检查点文件路径
             
-        Returns:
-            True if successful, False otherwise
+        返回:
+            如果成功则为 True，否则为 False
         """
         if checkpoint_path is not None:
             self.checkpoint_path = checkpoint_path
         
         if self.checkpoint_path is None:
-            logger.error("No checkpoint path provided")
+            logger.error("未提供检查点路径")
             return False
         
         checkpoint_file = Path(self.checkpoint_path)
         if not checkpoint_file.exists():
-            logger.error(f"Checkpoint file not found: {self.checkpoint_path}")
+            logger.error(f"未找到检查点文件: {self.checkpoint_path}")
             return False
         
         try:
-            # Import SAM (segment-anything package)
+            # 导入 SAM (segment-anything 包)
             try:
                 from segment_anything import sam_model_registry, SamPredictor
             except ImportError:
-                logger.error("segment-anything package not installed. Install with: pip install git+https://github.com/facebookresearch/segment-anything.git")
+                logger.error("未安装 segment-anything 包。请使用以下命令安装: pip install git+https://github.com/facebookresearch/segment-anything.git")
                 return False
             
-            # Load model
-            logger.info(f"Loading SAM model from {self.checkpoint_path}...")
+            # 加载模型
+            logger.info(f"正在从 {self.checkpoint_path} 加载 SAM 模型...")
             self.sam_model = sam_model_registry[self.model_type](checkpoint=str(checkpoint_file))
             self.sam_model.to(self.device)
             self.sam_model.eval()
             
-            # Create predictor
+            # 创建预测器
             self.predictor = SamPredictor(self.sam_model)
             
-            logger.info(f"SAM model loaded successfully on {self.device}")
+            logger.info(f"SAM 模型已成功加载到 {self.device}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to load SAM model: {e}", exc_info=True)
+            logger.error(f"加载 SAM 模型失败: {e}", exc_info=True)
             return False
     
     def is_loaded(self) -> bool:
-        """Check if model is loaded."""
+        """检查模型是否已加载。"""
         return self.sam_model is not None and self.predictor is not None
     
     def encode_image(self, image: np.ndarray) -> bool:
         """
-        Encode image for SAM prediction.
+        为 SAM 预测编码图像。
         
-        This should be called once per image before making predictions.
+        在进行预测之前，每张图像应调用一次此方法。
         
-        Args:
-            image: Image as numpy array (HxWx3) in RGB format
+        参数:
+            image: RGB 格式的 numpy 数组 (HxWx3) 图像
             
-        Returns:
-            True if successful, False otherwise
+        返回:
+            如果成功则为 True，否则为 False
         """
         if not self.is_loaded():
-            logger.error("SAM model not loaded")
+            logger.error("SAM 模型未加载")
             return False
         
         try:
-            # Set image in predictor (this will encode it)
+            # 在预测器中设置图像（这将对其进行编码）
             self.predictor.set_image(image)
             self.current_image_shape = image.shape[:2]
             
-            logger.info(f"Image encoded successfully: {image.shape}")
+            logger.info(f"图像编码成功: {image.shape}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to encode image: {e}", exc_info=True)
+            logger.error(f"编码图像失败: {e}", exc_info=True)
             return False
     
     def predict_mask_from_points(self,
@@ -152,37 +152,37 @@ class SAMHandler:
                                  labels: List[int],
                                  multimask_output: bool = True) -> Optional[Dict]:
         """
-        Predict mask from point prompts.
+        根据点提示预测掩码。
         
-        Args:
-            points: List of (x, y) coordinates
-            labels: List of labels (1 for foreground, 0 for background)
-            multimask_output: Whether to return multiple masks
+        参数:
+            points: (x, y) 坐标列表
+            labels: 标签列表（1 表示前景，0 表示背景）
+            multimask_output: 是否返回多个掩码
             
-        Returns:
-            Dictionary with 'masks', 'scores', 'logits' or None if failed
+        返回:
+            包含 'masks'、'scores'、'logits' 的字典，如果失败则返回 None
         """
         if not self.is_loaded():
-            logger.error("SAM model not loaded")
+            logger.error("SAM 模型未加载")
             return None
         
         if self.current_image_shape is None:
-            logger.error("No image encoded. Call encode_image() first")
+            logger.error("未编码图像。请先调用 encode_image()")
             return None
         
         try:
-            # Convert to numpy arrays
+            # 转换为 numpy 数组
             point_coords = np.array(points, dtype=np.float32)
             point_labels = np.array(labels, dtype=np.int32)
             
-            # Predict
+            # 预测
             masks, scores, logits = self.predictor.predict(
                 point_coords=point_coords,
                 point_labels=point_labels,
                 multimask_output=multimask_output
             )
             
-            logger.info(f"Predicted {len(masks)} mask(s) from {len(points)} point(s)")
+            logger.info(f"根据 {len(points)} 个点预测了 {len(masks)} 个掩码")
             
             return {
                 'masks': masks,
@@ -191,41 +191,41 @@ class SAMHandler:
             }
             
         except Exception as e:
-            logger.error(f"Failed to predict mask from points: {e}", exc_info=True)
+            logger.error(f"根据点预测掩码失败: {e}", exc_info=True)
             return None
     
     def predict_mask_from_box(self,
                              box: Tuple[int, int, int, int],
                              multimask_output: bool = False) -> Optional[Dict]:
         """
-        Predict mask from bounding box prompt.
+        根据边界框提示预测掩码。
         
-        Args:
-            box: Bounding box as (x1, y1, x2, y2)
-            multimask_output: Whether to return multiple masks
+        参数:
+            box: 边界框，格式为 (x1, y1, x2, y2)
+            multimask_output: 是否返回多个掩码
             
-        Returns:
-            Dictionary with 'masks', 'scores', 'logits' or None if failed
+        返回:
+            包含 'masks'、'scores'、'logits' 的字典，如果失败则返回 None
         """
         if not self.is_loaded():
-            logger.error("SAM model not loaded")
+            logger.error("SAM 模型未加载")
             return None
         
         if self.current_image_shape is None:
-            logger.error("No image encoded. Call encode_image() first")
+            logger.error("未编码图像。请先调用 encode_image()")
             return None
         
         try:
-            # Convert to numpy array
+            # 转换为 numpy 数组
             box_array = np.array(box, dtype=np.float32)
             
-            # Predict
+            # 预测
             masks, scores, logits = self.predictor.predict(
                 box=box_array,
                 multimask_output=multimask_output
             )
             
-            logger.info(f"Predicted {len(masks)} mask(s) from bounding box")
+            logger.info(f"根据边界框预测了 {len(masks)} 个掩码")
             
             return {
                 'masks': masks,
@@ -234,7 +234,7 @@ class SAMHandler:
             }
             
         except Exception as e:
-            logger.error(f"Failed to predict mask from box: {e}", exc_info=True)
+            logger.error(f"根据框预测掩码失败: {e}", exc_info=True)
             return None
     
     def predict_mask_from_combined(self,
@@ -243,32 +243,32 @@ class SAMHandler:
                                    box: Optional[Tuple[int, int, int, int]] = None,
                                    multimask_output: bool = True) -> Optional[Dict]:
         """
-        Predict mask from combined prompts (points and box).
+        根据组合提示（点和框）预测掩码。
         
-        Args:
-            points: List of (x, y) coordinates
-            labels: List of labels (1 for foreground, 0 for background)
-            box: Bounding box as (x1, y1, x2, y2)
-            multimask_output: Whether to return multiple masks
+        参数:
+            points: (x, y) 坐标列表
+            labels: 标签列表（1 表示前景，0 表示背景）
+            box: 边界框，格式为 (x1, y1, x2, y2)
+            multimask_output: 是否返回多个掩码
             
-        Returns:
-            Dictionary with 'masks', 'scores', 'logits' or None if failed
+        返回:
+            包含 'masks'、'scores'、'logits' 的字典，如果失败则返回 None
         """
         if not self.is_loaded():
-            logger.error("SAM model not loaded")
+            logger.error("SAM 模型未加载")
             return None
         
         if self.current_image_shape is None:
-            logger.error("No image encoded. Call encode_image() first")
+            logger.error("未编码图像。请先调用 encode_image()")
             return None
         
         try:
-            # Prepare arguments
+            # 准备参数
             point_coords = np.array(points, dtype=np.float32) if points else None
             point_labels = np.array(labels, dtype=np.int32) if labels else None
             box_array = np.array(box, dtype=np.float32) if box else None
             
-            # Predict
+            # 预测
             masks, scores, logits = self.predictor.predict(
                 point_coords=point_coords,
                 point_labels=point_labels,
@@ -276,7 +276,7 @@ class SAMHandler:
                 multimask_output=multimask_output
             )
             
-            logger.info(f"Predicted {len(masks)} mask(s) from combined prompts")
+            logger.info(f"根据组合提示预测了 {len(masks)} 个掩码")
             
             return {
                 'masks': masks,
@@ -285,18 +285,18 @@ class SAMHandler:
             }
             
         except Exception as e:
-            logger.error(f"Failed to predict mask from combined prompts: {e}", exc_info=True)
+            logger.error(f"根据组合提示预测掩码失败: {e}", exc_info=True)
             return None
     
     def get_best_mask(self, prediction: Dict) -> Optional[np.ndarray]:
         """
-        Get the best mask from prediction results.
+        从预测结果中获取最佳掩码。
         
-        Args:
-            prediction: Prediction dictionary with 'masks' and 'scores'
+        参数:
+            prediction: 包含 'masks' 和 'scores' 的预测字典
             
-        Returns:
-            Best mask as binary numpy array (HxW) or None
+        返回:
+            二值 numpy 数组格式的最佳掩码 (HxW)，或 None
         """
         if prediction is None or 'masks' not in prediction or 'scores' not in prediction:
             return None
@@ -307,11 +307,11 @@ class SAMHandler:
         if len(masks) == 0:
             return None
         
-        # Get mask with highest score
+        # 获取得分最高的掩码
         best_idx = np.argmax(scores)
         best_mask = masks[best_idx]
         
-        # Convert to binary mask (0 or 255)
+        # 转换为二值掩码 (0 或 255)
         binary_mask = (best_mask > 0.5).astype(np.uint8) * 255
         
         return binary_mask
@@ -322,16 +322,16 @@ class SAMHandler:
                          min_area: int = 100,
                          fill_holes: bool = True) -> np.ndarray:
         """
-        Post-process mask to improve quality.
+        对掩码进行后处理以提高质量。
         
-        Args:
-            mask: Binary mask (HxW)
-            remove_small: Whether to remove small components
-            min_area: Minimum area for components
-            fill_holes: Whether to fill holes
+        参数:
+            mask: 二值掩码 (HxW)
+            remove_small: 是否移除小组件
+            min_area: 组件的最小面积
+            fill_holes: 是否填充孔洞
             
-        Returns:
-            Processed mask
+        返回:
+            处理后的掩码
         """
         from src.utils.mask_utils import (
             remove_small_components, fill_holes as fill_mask_holes
@@ -339,18 +339,18 @@ class SAMHandler:
         
         processed_mask = mask.copy()
         
-        # Remove small components
+        # 移除小组件
         if remove_small:
             processed_mask = remove_small_components(processed_mask, min_area)
         
-        # Fill holes
+        # 填充孔洞
         if fill_holes:
             processed_mask = fill_mask_holes(processed_mask)
         
         return processed_mask
     
     def unload_model(self):
-        """Unload model to free memory."""
+        """卸载模型以释放内存。"""
         if self.sam_model is not None:
             del self.sam_model
             self.sam_model = None
@@ -362,18 +362,18 @@ class SAMHandler:
         self.encoded_image = None
         self.current_image_shape = None
         
-        # Clear CUDA cache if available
+        # 如果可用，清除 CUDA 缓存
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         
-        logger.info("SAM model unloaded")
+        logger.info("SAM 模型已卸载")
     
     def get_model_info(self) -> Dict:
         """
-        Get model information.
+        获取模型信息。
         
-        Returns:
-            Dictionary with model info
+        返回:
+            包含模型信息的字典
         """
         return {
             'model_type': self.model_type,

@@ -1,11 +1,11 @@
 """
-Pytest configuration and fixtures.
+Pytest 配置和固件。
 
-This module provides:
-- Common test fixtures
-- Mock data generators
-- Test utilities
-- Pytest hooks
+此模块提供：
+- 通用测试固件
+- 模拟数据生成器
+- 测试实用程序
+- Pytest 钩子
 """
 
 import pytest
@@ -15,68 +15,68 @@ import tempfile
 import shutil
 import yaml
 
-# Test data directory
+# 测试数据目录
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
 TEMP_DIR = Path(tempfile.gettempdir()) / "industrial_defect_seg_tests"
 
 
 @pytest.fixture(scope="session")
 def test_data_dir():
-    """Get test data directory."""
+    """获取测试数据目录。"""
     TEST_DATA_DIR.mkdir(exist_ok=True)
     return TEST_DATA_DIR
 
 
 @pytest.fixture(scope="session")
 def temp_dir():
-    """Create temporary directory for test outputs."""
+    """为测试输出创建临时目录。"""
     TEMP_DIR.mkdir(exist_ok=True)
     yield TEMP_DIR
-    # Cleanup after all tests
+    # 测试完成后清理
     if TEMP_DIR.exists():
         shutil.rmtree(TEMP_DIR)
 
 
 @pytest.fixture
 def temp_output_dir(temp_dir):
-    """Create temporary output directory for each test."""
+    """为每个测试创建临时输出目录。"""
     output_dir = temp_dir / f"output_{pytest.current_test_name}"
     output_dir.mkdir(exist_ok=True)
     yield output_dir
-    # Cleanup after each test
+    # 每个测试后清理
     if output_dir.exists():
         shutil.rmtree(output_dir)
 
 
 @pytest.fixture
 def sample_image():
-    """Generate a sample RGB image (256x256x3)."""
+    """生成示例 RGB 图像 (256x256x3)。"""
     image = np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8)
     return image
 
 
 @pytest.fixture
 def sample_grayscale_image():
-    """Generate a sample grayscale image (256x256)."""
+    """生成示例灰度图像 (256x256)。"""
     image = np.random.randint(0, 256, (256, 256), dtype=np.uint8)
     return image
 
 
 @pytest.fixture
 def sample_mask():
-    """Generate a sample binary mask (256x256)."""
+    """生成示例二值掩码 (256x256)。"""
     mask = np.zeros((256, 256), dtype=np.uint8)
-    # Add some defects
-    mask[50:100, 50:100] = 255  # Square defect
-    mask[150:180, 150:200] = 255  # Rectangle defect
+    # 添加一些缺陷
+    mask[50:100, 50:100] = 255  # 正方形缺陷
+    mask[150:180, 150:200] = 255  # 矩形缺陷
     return mask
 
 
 @pytest.fixture
 def sample_mask_with_multiple_defects():
-    """Generate a mask with multiple separate defects."""
+    """生成具有多个独立缺陷的掩码。"""
     mask = np.zeros((256, 256), dtype=np.uint8)
-    # Add 5 separate defects
+    # 添加 5 个独立的缺陷
     mask[20:40, 20:40] = 255
     mask[60:90, 100:130] = 255
     mask[120:150, 50:80] = 255
@@ -87,23 +87,23 @@ def sample_mask_with_multiple_defects():
 
 @pytest.fixture
 def empty_mask():
-    """Generate an empty mask (all zeros)."""
+    """生成空掩码（全零）。"""
     return np.zeros((256, 256), dtype=np.uint8)
 
 
 @pytest.fixture
 def sample_image_batch():
-    """Generate a batch of sample images."""
+    """生成一批示例图像。"""
     return [np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8) for _ in range(5)]
 
 
 @pytest.fixture
 def sample_mask_batch():
-    """Generate a batch of sample masks."""
+    """生成一批示例掩码。"""
     masks = []
     for i in range(5):
         mask = np.zeros((256, 256), dtype=np.uint8)
-        # Different defect for each mask
+        # 每个掩码具有不同的缺陷
         y_start = 50 + i * 30
         x_start = 50 + i * 20
         mask[y_start:y_start+40, x_start:x_start+40] = 255
@@ -113,7 +113,7 @@ def sample_mask_batch():
 
 @pytest.fixture
 def sample_config():
-    """Generate sample configuration dictionary."""
+    """生成示例配置字典。"""
     return {
         'app': {
             'name': 'Test App',
@@ -131,7 +131,7 @@ def sample_config():
 
 @pytest.fixture
 def sample_paths_config(temp_dir):
-    """Generate sample paths configuration."""
+    """生成示例路径配置。"""
     return {
         'paths': {
             'data_root': str(temp_dir / 'data'),
@@ -148,9 +148,9 @@ def sample_paths_config(temp_dir):
 
 @pytest.fixture
 def create_test_images(temp_dir):
-    """Factory fixture to create test image files."""
+    """创建测试图像文件的工厂固件。"""
     def _create_images(count=5, size=(256, 256)):
-        """Create test image files and return their paths."""
+        """创建测试图像文件并返回其路径。"""
         import cv2
         images_dir = temp_dir / 'test_images'
         images_dir.mkdir(exist_ok=True)
@@ -169,9 +169,9 @@ def create_test_images(temp_dir):
 
 @pytest.fixture
 def create_test_masks(temp_dir):
-    """Factory fixture to create test mask files."""
+    """创建测试掩码文件的工厂固件。"""
     def _create_masks(count=5, size=(256, 256)):
-        """Create test mask files and return their paths."""
+        """创建测试掩码文件并返回其路径。"""
         import cv2
         masks_dir = temp_dir / 'test_masks'
         masks_dir.mkdir(exist_ok=True)
@@ -179,7 +179,7 @@ def create_test_masks(temp_dir):
         mask_paths = []
         for i in range(count):
             mask = np.zeros(size, dtype=np.uint8)
-            # Add some defects
+            # 添加一些缺陷
             y_start = 50 + (i * 30) % 150
             x_start = 50 + (i * 40) % 150
             mask[y_start:y_start+40, x_start:x_start+40] = 255
@@ -195,7 +195,7 @@ def create_test_masks(temp_dir):
 
 @pytest.fixture
 def mock_statistics():
-    """Generate mock statistics for testing."""
+    """生成用于测试的模拟统计数据。"""
     return {
         'total_images': 100,
         'images_with_defects': 85,
@@ -225,7 +225,7 @@ def mock_statistics():
 
 @pytest.fixture
 def mock_training_history():
-    """Generate mock training history."""
+    """生成模拟训练历史记录。"""
     epochs = 50
     return {
         'loss': np.linspace(0.5, 0.1, epochs).tolist(),
@@ -237,45 +237,45 @@ def mock_training_history():
     }
 
 
-# Pytest hooks
+# Pytest 钩子
 
 def pytest_configure(config):
-    """Configure pytest."""
-    # Register custom markers
-    config.addinivalue_line("markers", "unit: Unit tests")
-    config.addinivalue_line("markers", "integration: Integration tests")
-    config.addinivalue_line("markers", "performance: Performance tests")
-    config.addinivalue_line("markers", "slow: Slow tests")
-    config.addinivalue_line("markers", "requires_gpu: Tests requiring GPU")
-    config.addinivalue_line("markers", "requires_sam: Tests requiring SAM weights")
-    config.addinivalue_line("markers", "ui: UI tests")
+    """配置 pytest。"""
+    # 注册自定义标记
+    config.addinivalue_line("markers", "unit: 单元测试")
+    config.addinivalue_line("markers", "integration: 集成测试")
+    config.addinivalue_line("markers", "performance: 性能测试")
+    config.addinivalue_line("markers", "slow: 慢速测试")
+    config.addinivalue_line("markers", "requires_gpu: 需要 GPU 的测试")
+    config.addinivalue_line("markers", "requires_sam: 需要 SAM 权重的测试")
+    config.addinivalue_line("markers", "ui: UI 测试")
 
 
 def pytest_collection_modifyitems(config, items):
-    """Modify test items after collection."""
-    # Skip GPU tests if CUDA not available
+    """在收集后修改测试项。"""
+    # 如果 CUDA 不可用，则跳过 GPU 测试
     try:
         import torch
         has_cuda = torch.cuda.is_available()
     except ImportError:
         has_cuda = False
     
-    skip_gpu = pytest.mark.skip(reason="CUDA not available")
+    skip_gpu = pytest.mark.skip(reason="CUDA 不可用")
     
     for item in items:
         if "requires_gpu" in item.keywords and not has_cuda:
             item.add_marker(skip_gpu)
         
-        # Mark slow tests
+        # 标记慢速测试
         if "slow" in item.keywords:
             item.add_marker(pytest.mark.slow)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_logging():
-    """Setup logging for tests."""
+    """为测试设置日志。"""
     import logging
     logging.basicConfig(
-        level=logging.WARNING,  # Only show warnings and errors during tests
+        level=logging.WARNING,  # 测试期间仅显示警告和错误
         format='%(levelname)s - %(name)s - %(message)s'
     )

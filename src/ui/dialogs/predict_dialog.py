@@ -1,11 +1,11 @@
 """
-Prediction dialog for batch inference.
+用于批量推理的预测对话框。
 
-This module provides:
-- Model selection
-- Image selection
-- Inference configuration
-- Real-time progress monitoring
+此模块提供：
+- 模型选择
+- 图像选择
+- 推理配置
+- 实时进度监控
 """
 
 from pathlib import Path
@@ -26,17 +26,17 @@ logger = get_logger(__name__)
 
 class PredictDialog(QDialog):
     """
-    Dialog for configuring and running batch inference.
+    用于配置和运行批量推理的对话框。
     """
     
     def __init__(self, config: dict, paths_config: dict, parent=None):
         """
-        Initialize prediction dialog.
+        初始化预测对话框。
         
-        Args:
-            config: Application configuration
-            paths_config: Paths configuration
-            parent: Parent widget
+        参数:
+            config: 应用程序配置
+            paths_config: 路径配置
+            parent: 父小部件
         """
         super().__init__(parent)
         
@@ -44,85 +44,85 @@ class PredictDialog(QDialog):
         self.paths_config = paths_config
         self.inference_thread: Optional[InferenceThread] = None
         
-        # Image list
+        # 图像列表
         self.image_paths: List[str] = []
         
-        self.setWindowTitle("Predict Segmentation Masks")
+        self.setWindowTitle("预测分割掩码")
         self.setMinimumSize(900, 700)
         
         self._init_ui()
         self._load_defaults()
         
-        logger.info("Prediction dialog opened")
+        logger.info("预测对话框已打开")
     
     def _init_ui(self):
-        """Initialize UI components."""
+        """初始化 UI 组件。"""
         layout = QVBoxLayout(self)
         
-        # Create tabs
+        # 创建选项卡
         tabs = QTabWidget()
         
-        # Tab 1: Model & Data
+        # 选项卡 1: 模型与数据
         model_tab = self._create_model_tab()
-        tabs.addTab(model_tab, "Model & Data")
+        tabs.addTab(model_tab, "模型与数据")
         
-        # Tab 2: Inference Settings
+        # 选项卡 2: 推理设置
         settings_tab = self._create_settings_tab()
-        tabs.addTab(settings_tab, "Settings")
+        tabs.addTab(settings_tab, "设置")
         
-        # Tab 3: Post-processing
+        # 选项卡 3: 后处理
         postprocess_tab = self._create_postprocess_tab()
-        tabs.addTab(postprocess_tab, "Post-processing")
+        tabs.addTab(postprocess_tab, "后处理")
         
-        # Tab 4: Monitor
+        # 选项卡 4: 监控
         monitor_tab = self._create_monitor_tab()
-        tabs.addTab(monitor_tab, "Monitor")
+        tabs.addTab(monitor_tab, "监控")
         
         layout.addWidget(tabs)
         
-        # Buttons
+        # 按钮
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         
-        self.start_btn = QPushButton("Start Prediction")
+        self.start_btn = QPushButton("开始预测")
         self.start_btn.setDefault(True)
         self.start_btn.clicked.connect(self._start_inference)
         button_layout.addWidget(self.start_btn)
         
-        self.stop_btn = QPushButton("Stop")
+        self.stop_btn = QPushButton("停止")
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self._stop_inference)
         button_layout.addWidget(self.stop_btn)
         
-        self.close_btn = QPushButton("Close")
+        self.close_btn = QPushButton("关闭")
         self.close_btn.clicked.connect(self.reject)
         button_layout.addWidget(self.close_btn)
         
         layout.addLayout(button_layout)
     
     def _create_model_tab(self):
-        """Create model & data tab."""
+        """创建模型与数据选项卡。"""
         from PyQt5.QtWidgets import QWidget
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Model selection
-        model_group = QGroupBox("Model")
+        # 模型选择
+        model_group = QGroupBox("模型")
         model_layout = QGridLayout(model_group)
         
-        model_layout.addWidget(QLabel("Checkpoint:"), 0, 0)
+        model_layout.addWidget(QLabel("检查点 (Checkpoint):"), 0, 0)
         self.checkpoint_edit = QLineEdit()
         model_layout.addWidget(self.checkpoint_edit, 0, 1)
-        browse_model_btn = QPushButton("Browse...")
+        browse_model_btn = QPushButton("浏览...")
         browse_model_btn.clicked.connect(self._browse_checkpoint)
         model_layout.addWidget(browse_model_btn, 0, 2)
         
-        model_layout.addWidget(QLabel("Architecture:"), 1, 0)
+        model_layout.addWidget(QLabel("架构:"), 1, 0)
         self.arch_combo = QComboBox()
         self.arch_combo.addItems(["U-Net", "DeepLabV3+", "FPN"])
         model_layout.addWidget(self.arch_combo, 1, 1)
         
-        model_layout.addWidget(QLabel("Encoder:"), 2, 0)
+        model_layout.addWidget(QLabel("编码器 (Encoder):"), 2, 0)
         self.encoder_combo = QComboBox()
         self.encoder_combo.addItems([
             "resnet18", "resnet34", "resnet50",
@@ -133,37 +133,37 @@ class PredictDialog(QDialog):
         
         layout.addWidget(model_group)
         
-        # Image selection
-        image_group = QGroupBox("Images")
+        # 图像选择
+        image_group = QGroupBox("图像")
         image_layout = QVBoxLayout(image_group)
         
-        # Input directory
+        # 输入目录
         input_layout = QHBoxLayout()
-        input_layout.addWidget(QLabel("Input Directory:"))
+        input_layout.addWidget(QLabel("输入目录:"))
         self.input_dir_edit = QLineEdit()
         input_layout.addWidget(self.input_dir_edit)
-        browse_input_btn = QPushButton("Browse...")
+        browse_input_btn = QPushButton("浏览...")
         browse_input_btn.clicked.connect(self._browse_input_dir)
         input_layout.addWidget(browse_input_btn)
         image_layout.addLayout(input_layout)
         
-        # Image list
+        # 图像列表
         self.image_list = QListWidget()
         self.image_list.setMaximumHeight(150)
-        image_layout.addWidget(QLabel("Selected Images:"))
+        image_layout.addWidget(QLabel("已选图像:"))
         image_layout.addWidget(self.image_list)
         
-        # Add/Remove buttons
+        # 添加/移除按钮
         list_buttons = QHBoxLayout()
-        add_images_btn = QPushButton("Add Images...")
+        add_images_btn = QPushButton("添加图像...")
         add_images_btn.clicked.connect(self._add_images)
         list_buttons.addWidget(add_images_btn)
         
-        remove_btn = QPushButton("Remove Selected")
+        remove_btn = QPushButton("移除所选")
         remove_btn.clicked.connect(self._remove_selected)
         list_buttons.addWidget(remove_btn)
         
-        clear_btn = QPushButton("Clear All")
+        clear_btn = QPushButton("清空全部")
         clear_btn.clicked.connect(self._clear_images)
         list_buttons.addWidget(clear_btn)
         list_buttons.addStretch()
@@ -172,13 +172,13 @@ class PredictDialog(QDialog):
         
         layout.addWidget(image_group)
         
-        # Output directory
-        output_group = QGroupBox("Output")
+        # 输出目录
+        output_group = QGroupBox("输出")
         output_layout = QHBoxLayout(output_group)
-        output_layout.addWidget(QLabel("Output Directory:"))
+        output_layout.addWidget(QLabel("输出目录:"))
         self.output_dir_edit = QLineEdit()
         output_layout.addWidget(self.output_dir_edit)
-        browse_output_btn = QPushButton("Browse...")
+        browse_output_btn = QPushButton("浏览...")
         browse_output_btn.clicked.connect(lambda: self._browse_dir(self.output_dir_edit))
         output_layout.addWidget(browse_output_btn)
         
@@ -187,16 +187,16 @@ class PredictDialog(QDialog):
         return widget
     
     def _create_settings_tab(self):
-        """Create inference settings tab."""
+        """创建推理设置选项卡。"""
         from PyQt5.QtWidgets import QWidget
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Image settings
-        img_group = QGroupBox("Image Settings")
+        # 图像设置
+        img_group = QGroupBox("图像设置")
         img_layout = QGridLayout(img_group)
         
-        img_layout.addWidget(QLabel("Image Size:"), 0, 0)
+        img_layout.addWidget(QLabel("图像尺寸:"), 0, 0)
         size_layout = QHBoxLayout()
         self.img_width_spin = QSpinBox()
         self.img_width_spin.setRange(128, 2048)
@@ -209,7 +209,7 @@ class PredictDialog(QDialog):
         size_layout.addWidget(self.img_height_spin)
         img_layout.addLayout(size_layout, 0, 1)
         
-        img_layout.addWidget(QLabel("Threshold:"), 1, 0)
+        img_layout.addWidget(QLabel("阈值:"), 1, 0)
         self.threshold_spin = QDoubleSpinBox()
         self.threshold_spin.setRange(0.0, 1.0)
         self.threshold_spin.setSingleStep(0.05)
@@ -218,16 +218,16 @@ class PredictDialog(QDialog):
         
         layout.addWidget(img_group)
         
-        # Advanced settings
-        advanced_group = QGroupBox("Advanced")
+        # 高级设置
+        advanced_group = QGroupBox("高级设置")
         advanced_layout = QVBoxLayout(advanced_group)
         
-        self.tta_check = QCheckBox("Use Test-Time Augmentation (TTA)")
-        self.tta_check.setToolTip("Improve accuracy by averaging predictions from multiple augmentations")
+        self.tta_check = QCheckBox("使用测试时增强 (TTA)")
+        self.tta_check.setToolTip("通过平均多次增强的预测结果来提高准确性")
         advanced_layout.addWidget(self.tta_check)
         
         tta_layout = QHBoxLayout()
-        tta_layout.addWidget(QLabel("TTA Augmentations:"))
+        tta_layout.addWidget(QLabel("TTA 增强次数:"))
         self.tta_aug_spin = QSpinBox()
         self.tta_aug_spin.setRange(2, 8)
         self.tta_aug_spin.setValue(4)
@@ -238,7 +238,7 @@ class PredictDialog(QDialog):
         
         self.tta_check.toggled.connect(self.tta_aug_spin.setEnabled)
         
-        self.save_overlay_check = QCheckBox("Save Overlay Visualizations")
+        self.save_overlay_check = QCheckBox("保存叠加可视化结果")
         self.save_overlay_check.setChecked(True)
         advanced_layout.addWidget(self.save_overlay_check)
         
@@ -248,46 +248,46 @@ class PredictDialog(QDialog):
         return widget
     
     def _create_postprocess_tab(self):
-        """Create post-processing tab."""
+        """创建后处理选项卡。"""
         from PyQt5.QtWidgets import QWidget
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Enable post-processing
-        self.postprocess_check = QCheckBox("Apply Post-processing")
+        # 启用后处理
+        self.postprocess_check = QCheckBox("应用后处理")
         self.postprocess_check.setChecked(True)
         layout.addWidget(self.postprocess_check)
         
-        # Post-processing options
-        postprocess_group = QGroupBox("Post-processing Options")
+        # 后处理选项
+        postprocess_group = QGroupBox("后处理选项")
         postprocess_layout = QGridLayout(postprocess_group)
         
-        self.remove_small_check = QCheckBox("Remove Small Objects")
+        self.remove_small_check = QCheckBox("移除小目标")
         self.remove_small_check.setChecked(True)
         postprocess_layout.addWidget(self.remove_small_check, 0, 0, 1, 2)
         
-        postprocess_layout.addWidget(QLabel("Min Object Size:"), 1, 0)
+        postprocess_layout.addWidget(QLabel("最小目标尺寸:"), 1, 0)
         self.min_size_spin = QSpinBox()
         self.min_size_spin.setRange(10, 10000)
         self.min_size_spin.setValue(100)
         postprocess_layout.addWidget(self.min_size_spin, 1, 1)
         
-        self.fill_holes_check = QCheckBox("Fill Holes")
+        self.fill_holes_check = QCheckBox("填充孔洞")
         self.fill_holes_check.setChecked(True)
         postprocess_layout.addWidget(self.fill_holes_check, 2, 0, 1, 2)
         
-        self.smooth_check = QCheckBox("Smooth Contours")
+        self.smooth_check = QCheckBox("平滑轮廓")
         self.smooth_check.setChecked(True)
         postprocess_layout.addWidget(self.smooth_check, 3, 0, 1, 2)
         
-        postprocess_layout.addWidget(QLabel("Closing Kernel Size:"), 4, 0)
+        postprocess_layout.addWidget(QLabel("闭运算核大小:"), 4, 0)
         self.closing_spin = QSpinBox()
         self.closing_spin.setRange(0, 21)
         self.closing_spin.setSingleStep(2)
         self.closing_spin.setValue(5)
         postprocess_layout.addWidget(self.closing_spin, 4, 1)
         
-        # Enable/disable based on checkbox
+        # 根据复选框启用/禁用
         self.postprocess_check.toggled.connect(postprocess_group.setEnabled)
         
         layout.addWidget(postprocess_group)
@@ -296,25 +296,25 @@ class PredictDialog(QDialog):
         return widget
     
     def _create_monitor_tab(self):
-        """Create monitoring tab."""
+        """创建监控选项卡。"""
         from PyQt5.QtWidgets import QWidget
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Progress
-        progress_group = QGroupBox("Progress")
+        # 进度
+        progress_group = QGroupBox("进度")
         progress_layout = QVBoxLayout(progress_group)
         
         self.progress_bar = QProgressBar()
         progress_layout.addWidget(self.progress_bar)
         
-        self.status_label = QLabel("Ready to predict")
+        self.status_label = QLabel("准备预测")
         progress_layout.addWidget(self.status_label)
         
         layout.addWidget(progress_group)
         
-        # Log
-        log_group = QGroupBox("Inference Log")
+        # 日志
+        log_group = QGroupBox("推理日志")
         log_layout = QVBoxLayout(log_group)
         
         self.log_text = QTextEdit()
@@ -326,14 +326,14 @@ class PredictDialog(QDialog):
         return widget
     
     def _load_defaults(self):
-        """Load default values."""
+        """加载默认值。"""
         from pathlib import Path
         
-        # Set default paths
+        # 设置默认路径
         project_root = Path(self.paths_config['paths']['data_root'])
         self.output_dir_edit.setText(str(project_root / "outputs/predictions"))
         
-        # Try to find best checkpoint
+        # 尝试查找最佳检查点
         models_dir = project_root / "outputs/models"
         if models_dir.exists():
             best_model = models_dir / "best_model.pth"
@@ -341,32 +341,32 @@ class PredictDialog(QDialog):
                 self.checkpoint_edit.setText(str(best_model))
     
     def _browse_checkpoint(self):
-        """Browse for checkpoint file."""
+        """浏览检查点文件。"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Model Checkpoint",
+            "选择模型检查点",
             self.checkpoint_edit.text(),
-            "Checkpoint Files (*.pth *.pt);;All Files (*)"
+            "检查点文件 (*.pth *.pt);;所有文件 (*)"
         )
         
         if file_path:
             self.checkpoint_edit.setText(file_path)
     
     def _browse_input_dir(self):
-        """Browse for input directory."""
+        """浏览输入目录。"""
         dir_path = QFileDialog.getExistingDirectory(
             self,
-            "Select Input Directory",
+            "选择输入目录",
             self.input_dir_edit.text()
         )
         
         if dir_path:
             self.input_dir_edit.setText(dir_path)
-            # Auto-load images from directory
+            # 从目录自动加载图像
             self._load_images_from_dir(dir_path)
     
     def _load_images_from_dir(self, dir_path: str):
-        """Load all images from directory."""
+        """从目录加载所有图像。"""
         from src.utils.file_utils import list_files
         
         image_exts = ['.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff']
@@ -375,24 +375,24 @@ class PredictDialog(QDialog):
         if images:
             self.image_paths.extend(images)
             self._update_image_list()
-            self.log_text.append(f"Loaded {len(images)} images from {dir_path}")
+            self.log_text.append(f"从 {dir_path} 加载了 {len(images)} 张图像")
     
     def _add_images(self):
-        """Add individual images."""
+        """添加单个图像。"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Select Images",
+            "选择图像",
             "",
-            "Image Files (*.jpg *.jpeg *.png *.bmp *.tif *.tiff);;All Files (*)"
+            "图像文件 (*.jpg *.jpeg *.png *.bmp *.tif *.tiff);;所有文件 (*)"
         )
         
         if file_paths:
             self.image_paths.extend(file_paths)
             self._update_image_list()
-            self.log_text.append(f"Added {len(file_paths)} images")
+            self.log_text.append(f"添加了 {len(file_paths)} 张图像")
     
     def _remove_selected(self):
-        """Remove selected images from list."""
+        """从列表中移除所选图像。"""
         selected_items = self.image_list.selectedItems()
         for item in selected_items:
             row = self.image_list.row(item)
@@ -400,21 +400,21 @@ class PredictDialog(QDialog):
             self.image_list.takeItem(row)
     
     def _clear_images(self):
-        """Clear all images."""
+        """清空所有图像。"""
         self.image_paths.clear()
         self.image_list.clear()
     
     def _update_image_list(self):
-        """Update image list widget."""
+        """更新图像列表小部件。"""
         self.image_list.clear()
         for path in self.image_paths:
             self.image_list.addItem(Path(path).name)
     
     def _browse_dir(self, line_edit: QLineEdit):
-        """Browse for directory."""
+        """浏览目录。"""
         dir_path = QFileDialog.getExistingDirectory(
             self,
-            "Select Directory",
+            "选择目录",
             line_edit.text()
         )
         
@@ -422,21 +422,21 @@ class PredictDialog(QDialog):
             line_edit.setText(dir_path)
     
     def _start_inference(self):
-        """Start inference."""
-        # Validate
+        """开始推理。"""
+        # 验证
         if not self.checkpoint_edit.text():
-            QMessageBox.warning(self, "Error", "Please select a model checkpoint")
+            QMessageBox.warning(self, "错误", "请选择模型检查点")
             return
         
         if not self.image_paths:
-            QMessageBox.warning(self, "Error", "Please add images to process")
+            QMessageBox.warning(self, "错误", "请添加要处理的图像")
             return
         
         if not self.output_dir_edit.text():
-            QMessageBox.warning(self, "Error", "Please specify output directory")
+            QMessageBox.warning(self, "错误", "请指定输出目录")
             return
         
-        # Prepare config
+        # 准备配置
         inference_config = {
             'architecture': self.arch_combo.currentText().lower().replace('-', '').replace('+', 'plus'),
             'encoder': self.encoder_combo.currentText(),
@@ -455,7 +455,7 @@ class PredictDialog(QDialog):
             'closing_kernel_size': self.closing_spin.value()
         }
         
-        # Create inference thread
+        # 创建推理线程
         self.inference_thread = InferenceThread(
             checkpoint_path=self.checkpoint_edit.text(),
             image_paths=self.image_paths,
@@ -463,87 +463,87 @@ class PredictDialog(QDialog):
             config=inference_config
         )
         
-        # Connect signals
+        # 连接信号
         self.inference_thread.progress_updated.connect(self._on_progress_updated)
         self.inference_thread.image_completed.connect(self._on_image_completed)
         self.inference_thread.inference_completed.connect(self._on_inference_completed)
         self.inference_thread.inference_failed.connect(self._on_inference_failed)
         
-        # Update UI
+        # 更新 UI
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.status_label.setText("Inference started...")
-        self.log_text.append("=== Inference Started ===")
-        self.log_text.append(f"Total images: {len(self.image_paths)}")
+        self.status_label.setText("推理已开始...")
+        self.log_text.append("=== 推理已开始 ===")
+        self.log_text.append(f"总图像数: {len(self.image_paths)}")
         
-        # Start
+        # 开始
         self.inference_thread.start()
         
-        logger.info("Inference started")
+        logger.info("推理已开始")
     
     def _stop_inference(self):
-        """Stop inference."""
+        """停止推理。"""
         if self.inference_thread:
             self.inference_thread.stop()
             self.stop_btn.setEnabled(False)
-            self.status_label.setText("Stopping...")
-            self.log_text.append("Stop requested...")
+            self.status_label.setText("正在停止...")
+            self.log_text.append("已请求停止...")
     
     def _on_progress_updated(self, current: int, total: int, image_path: str):
-        """Handle progress update."""
+        """处理进度更新。"""
         progress = int((current / total) * 100)
         self.progress_bar.setValue(progress)
-        self.status_label.setText(f"Processing: {current}/{total} - {Path(image_path).name}")
+        self.status_label.setText(f"正在处理: {current}/{total} - {Path(image_path).name}")
     
     def _on_image_completed(self, index: int, image_path: str, success: bool):
-        """Handle image completion."""
+        """处理图像完成。"""
         status = "✓" if success else "✗"
         self.log_text.append(f"{status} {Path(image_path).name}")
     
     def _on_inference_completed(self, results: dict):
-        """Handle inference completion."""
+        """处理推理完成。"""
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.progress_bar.setValue(100)
-        self.status_label.setText(f"✓ Inference completed! {results['successful']}/{results['total']} successful")
+        self.status_label.setText(f"✓ 推理已完成！{results['successful']}/{results['total']} 成功")
         
-        self.log_text.append("=== Inference Completed ===")
-        self.log_text.append(f"Successful: {results['successful']}")
-        self.log_text.append(f"Failed: {results['failed']}")
+        self.log_text.append("=== 推理已完成 ===")
+        self.log_text.append(f"成功: {results['successful']}")
+        self.log_text.append(f"失败: {results['failed']}")
         
         if results['failed_files']:
-            self.log_text.append("\nFailed files:")
+            self.log_text.append("\n失败文件:")
             for path in results['failed_files']:
                 self.log_text.append(f"  - {Path(path).name}")
         
         QMessageBox.information(
             self,
-            "Inference Complete",
-            f"Inference completed successfully!\n\n"
-            f"Successful: {results['successful']}/{results['total']}\n"
-            f"Output: {self.output_dir_edit.text()}"
+            "推理完成",
+            f"推理已成功完成！\n\n"
+            f"成功: {results['successful']}/{results['total']}\n"
+            f"输出目录: {self.output_dir_edit.text()}"
         )
     
     def _on_inference_failed(self, error_message: str):
-        """Handle inference failure."""
+        """处理推理失败。"""
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
-        self.status_label.setText("❌ Inference failed")
-        self.log_text.append(f"ERROR: {error_message}")
+        self.status_label.setText("❌ 推理失败")
+        self.log_text.append(f"错误: {error_message}")
         
         QMessageBox.critical(
             self,
-            "Inference Failed",
-            f"Inference failed with error:\n\n{error_message}"
+            "推理失败",
+            f"推理失败，错误信息：\n\n{error_message}"
         )
     
     def closeEvent(self, event):
-        """Handle dialog close."""
+        """处理对话框关闭。"""
         if self.inference_thread and self.inference_thread.isRunning():
             reply = QMessageBox.question(
                 self,
-                "Inference in Progress",
-                "Inference is still running. Do you want to stop it?",
+                "推理正在进行中",
+                "推理仍在运行。您确定要停止吗？",
                 QMessageBox.Yes | QMessageBox.No
             )
             
@@ -557,5 +557,5 @@ class PredictDialog(QDialog):
             event.accept()
 
 
-# Need torch for device check
+# 需要 torch 进行设备检查
 import torch

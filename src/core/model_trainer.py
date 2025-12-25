@@ -1,12 +1,12 @@
 """
-Model trainer for segmentation models.
+分割模型的模型训练器。
 
-This module provides:
-- Training loop with checkpointing
-- Validation
-- Learning rate scheduling
-- Early stopping
-- Metrics tracking
+此模块提供：
+- 带有检查点保存的训练循环
+- 验证
+- 学习率调度
+- 早停机制
+- 指标跟踪
 """
 
 import os
@@ -27,14 +27,14 @@ logger = get_logger(__name__)
 
 class ModelTrainer:
     """
-    Trainer for segmentation models.
+    分割模型训练器。
     
-    Handles:
-    - Training loop
-    - Validation
-    - Checkpointing
-    - Early stopping
-    - Metrics tracking
+    处理：
+    - 训练循环
+    - 验证
+    - 检查点保存
+    - 早停机制
+    - 指标跟踪
     """
     
     def __init__(self,
@@ -46,16 +46,16 @@ class ModelTrainer:
                  scheduler: Optional[_LRScheduler] = None,
                  early_stopping_patience: int = 10):
         """
-        Initialize trainer.
+        初始化训练器。
         
-        Args:
-            model: PyTorch model
-            optimizer: Optimizer
-            criterion: Loss function
-            device: Device for training
-            checkpoint_dir: Directory to save checkpoints
-            scheduler: Optional learning rate scheduler
-            early_stopping_patience: Patience for early stopping
+        参数:
+            model: PyTorch 模型
+            optimizer: 优化器
+            criterion: 损失函数
+            device: 训练设备
+            checkpoint_dir: 保存检查点的目录
+            scheduler: 可选的学习率调度器
+            early_stopping_patience: 早停机制的耐心值（epoch 数）
         """
         self.model = model
         self.optimizer = optimizer
@@ -65,36 +65,36 @@ class ModelTrainer:
         self.scheduler = scheduler
         self.early_stopping_patience = early_stopping_patience
         
-        # Create checkpoint directory
+        # 创建检查点目录
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
-        # Training state
+        # 训练状态
         self.current_epoch = 0
         self.best_val_loss = float('inf')
         self.best_val_metric = 0.0
         self.epochs_without_improvement = 0
         
-        # History
+        # 历史记录
         self.train_losses = []
         self.val_losses = []
         self.val_metrics_history = []
         
-        logger.info(f"Trainer initialized: device={device}, checkpoint_dir={checkpoint_dir}")
+        logger.info(f"训练器已初始化: 设备={device}, 检查点目录={checkpoint_dir}")
     
     def train_epoch(self,
                    train_loader: DataLoader,
                    epoch: int,
                    progress_callback: Optional[Callable] = None) -> Dict:
         """
-        Train for one epoch.
+        训练一个 epoch。
         
-        Args:
-            train_loader: Training data loader
-            epoch: Current epoch number
-            progress_callback: Optional callback(current, total, loss, metrics)
+        参数:
+            train_loader: 训练数据加载器
+            epoch: 当前 epoch 编号
+            progress_callback: 可选的回调函数 (current, total, loss, metrics)
             
-        Returns:
-            Dictionary with training metrics
+        返回:
+            包含训练指标的字典
         """
         self.model.train()
         
@@ -104,38 +104,38 @@ class ModelTrainer:
         num_batches = len(train_loader)
         
         for batch_idx, (images, masks) in enumerate(train_loader):
-            # Move to device
+            # 移动到设备
             images = images.to(self.device)
             masks = masks.to(self.device)
             
-            # Forward pass
+            # 前向传播
             self.optimizer.zero_grad()
             outputs = self.model(images)
             
-            # Compute loss
+            # 计算损失
             loss = self.criterion(outputs, masks)
             
-            # Backward pass
+            # 反向传播
             loss.backward()
             self.optimizer.step()
             
-            # Track metrics
+            # 跟踪指标
             running_loss += loss.item()
             
             with torch.no_grad():
-                # Apply sigmoid if needed
-                if outputs.shape[1] == 1:  # Binary segmentation
+                # 如果需要，应用 sigmoid
+                if outputs.shape[1] == 1:  # 二值分割
                     outputs = torch.sigmoid(outputs)
                 
                 metrics_tracker.update(outputs, masks)
             
-            # Progress callback
+            # 进度回调
             if progress_callback is not None:
                 avg_loss = running_loss / (batch_idx + 1)
                 current_metrics = metrics_tracker.get_average()
                 progress_callback(batch_idx + 1, num_batches, avg_loss, current_metrics)
         
-        # Calculate average loss
+        # 计算平均损失
         avg_loss = running_loss / num_batches
         avg_metrics = metrics_tracker.get_average()
         
@@ -148,14 +148,14 @@ class ModelTrainer:
                 val_loader: DataLoader,
                 progress_callback: Optional[Callable] = None) -> Dict:
         """
-        Validate model.
+        验证模型。
         
-        Args:
-            val_loader: Validation data loader
-            progress_callback: Optional callback(current, total, loss, metrics)
+        参数:
+            val_loader: 验证数据加载器
+            progress_callback: 可选的回调函数 (current, total, loss, metrics)
             
-        Returns:
-            Dictionary with validation metrics
+        返回:
+            包含验证指标的字典
         """
         self.model.eval()
         
@@ -166,32 +166,32 @@ class ModelTrainer:
         
         with torch.no_grad():
             for batch_idx, (images, masks) in enumerate(val_loader):
-                # Move to device
+                # 移动到设备
                 images = images.to(self.device)
                 masks = masks.to(self.device)
                 
-                # Forward pass
+                # 前向传播
                 outputs = self.model(images)
                 
-                # Compute loss
+                # 计算损失
                 loss = self.criterion(outputs, masks)
                 
-                # Track metrics
+                # 跟踪指标
                 running_loss += loss.item()
                 
-                # Apply sigmoid if needed
-                if outputs.shape[1] == 1:  # Binary segmentation
+                # 如果需要，应用 sigmoid
+                if outputs.shape[1] == 1:  # 二值分割
                     outputs = torch.sigmoid(outputs)
                 
                 metrics_tracker.update(outputs, masks)
                 
-                # Progress callback
+                # 进度回调
                 if progress_callback is not None:
                     avg_loss = running_loss / (batch_idx + 1)
                     current_metrics = metrics_tracker.get_average()
                     progress_callback(batch_idx + 1, num_batches, avg_loss, current_metrics)
         
-        # Calculate average loss
+        # 计算平均损失
         avg_loss = running_loss / num_batches
         avg_metrics = metrics_tracker.get_average()
         
@@ -207,19 +207,19 @@ class ModelTrainer:
              epoch_callback: Optional[Callable] = None,
              batch_callback: Optional[Callable] = None) -> Dict:
         """
-        Train model for multiple epochs.
+        训练模型多个 epoch。
         
-        Args:
-            train_loader: Training data loader
-            val_loader: Validation data loader
-            num_epochs: Number of epochs to train
-            epoch_callback: Optional callback after each epoch(epoch, train_results, val_results)
-            batch_callback: Optional callback after each batch(current, total, loss, metrics)
+        参数:
+            train_loader: 训练数据加载器
+            val_loader: 验证数据加载器
+            num_epochs: 训练的 epoch 数
+            epoch_callback: 每个 epoch 后的可选回调 (epoch, train_results, val_results)
+            batch_callback: 每个 batch 后的可选回调 (current, total, loss, metrics)
             
-        Returns:
-            Dictionary with training history
+        返回:
+            包含训练历史记录的字典
         """
-        logger.info(f"Starting training for {num_epochs} epochs")
+        logger.info(f"开始训练，共 {num_epochs} 个 epoch")
         
         start_time = time.time()
         
@@ -228,22 +228,22 @@ class ModelTrainer:
             
             logger.info(f"Epoch {self.current_epoch}/{num_epochs}")
             
-            # Train
+            # 训练
             train_results = self.train_epoch(train_loader, epoch, batch_callback)
-            logger.info(f"Train loss: {train_results['loss']:.4f}, "
+            logger.info(f"训练损失: {train_results['loss']:.4f}, "
                        f"IoU: {train_results['metrics']['iou']:.4f}")
             
-            # Validate
+            # 验证
             val_results = self.validate(val_loader)
-            logger.info(f"Val loss: {val_results['loss']:.4f}, "
+            logger.info(f"验证损失: {val_results['loss']:.4f}, "
                        f"IoU: {val_results['metrics']['iou']:.4f}")
             
-            # Update history
+            # 更新历史记录
             self.train_losses.append(train_results['loss'])
             self.val_losses.append(val_results['loss'])
             self.val_metrics_history.append(val_results['metrics'])
             
-            # Learning rate scheduler
+            # 学习率调度器
             if self.scheduler is not None:
                 if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                     self.scheduler.step(val_results['loss'])
@@ -251,33 +251,33 @@ class ModelTrainer:
                     self.scheduler.step()
                 
                 current_lr = self.optimizer.param_groups[0]['lr']
-                logger.info(f"Learning rate: {current_lr:.6f}")
+                logger.info(f"当前学习率: {current_lr:.6f}")
             
-            # Save checkpoint
+            # 保存检查点
             is_best = val_results['loss'] < self.best_val_loss
             if is_best:
                 self.best_val_loss = val_results['loss']
                 self.best_val_metric = val_results['metrics']['iou']
                 self.epochs_without_improvement = 0
                 self.save_checkpoint(is_best=True)
-                logger.info("✓ Best model saved")
+                logger.info("✓ 已保存最佳模型")
             else:
                 self.epochs_without_improvement += 1
                 self.save_checkpoint(is_best=False)
             
-            # Early stopping
+            # 早停机制
             if self.epochs_without_improvement >= self.early_stopping_patience:
-                logger.info(f"Early stopping triggered after {self.current_epoch} epochs")
+                logger.info(f"在 {self.current_epoch} 个 epoch 后触发早停")
                 break
             
-            # Epoch callback
+            # Epoch 回调
             if epoch_callback is not None:
                 epoch_callback(self.current_epoch, train_results, val_results)
         
         elapsed_time = time.time() - start_time
-        logger.info(f"Training completed in {elapsed_time:.2f} seconds")
-        logger.info(f"Best val loss: {self.best_val_loss:.4f}")
-        logger.info(f"Best val IoU: {self.best_val_metric:.4f}")
+        logger.info(f"训练完成，耗时 {elapsed_time:.2f} 秒")
+        logger.info(f"最佳验证损失: {self.best_val_loss:.4f}")
+        logger.info(f"最佳验证 IoU: {self.best_val_metric:.4f}")
         
         return {
             'train_losses': self.train_losses,
@@ -290,10 +290,10 @@ class ModelTrainer:
     
     def save_checkpoint(self, is_best: bool = False):
         """
-        Save model checkpoint.
+        保存模型检查点。
         
-        Args:
-            is_best: Whether this is the best model so far
+        参数:
+            is_best: 这是否是迄今为止最好的模型
         """
         checkpoint = {
             'epoch': self.current_epoch,
@@ -309,21 +309,21 @@ class ModelTrainer:
         if self.scheduler is not None:
             checkpoint['scheduler_state_dict'] = self.scheduler.state_dict()
         
-        # Save last checkpoint
+        # 保存最后的检查点
         last_path = self.checkpoint_dir / "last_checkpoint.pth"
         torch.save(checkpoint, last_path)
         
-        # Save best checkpoint
+        # 保存最佳检查点
         if is_best:
             best_path = self.checkpoint_dir / "best_model.pth"
             torch.save(checkpoint, best_path)
     
     def load_checkpoint(self, checkpoint_path: str):
         """
-        Load model checkpoint.
+        加载模型检查点。
         
-        Args:
-            checkpoint_path: Path to checkpoint file
+        参数:
+            checkpoint_path: 检查点文件路径
         """
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
         
@@ -340,15 +340,15 @@ class ModelTrainer:
         self.val_losses = checkpoint.get('val_losses', [])
         self.val_metrics_history = checkpoint.get('val_metrics', [])
         
-        logger.info(f"Checkpoint loaded from: {checkpoint_path}")
-        logger.info(f"Resuming from epoch {self.current_epoch}")
+        logger.info(f"已从 {checkpoint_path} 加载检查点")
+        logger.info(f"从第 {self.current_epoch} 个 epoch 恢复训练")
     
     def get_history(self) -> Dict:
         """
-        Get training history.
+        获取训练历史记录。
         
-        Returns:
-            Dictionary with training history
+        返回:
+            包含训练历史记录的字典
         """
         return {
             'train_losses': self.train_losses,
@@ -364,16 +364,16 @@ def create_optimizer(model: nn.Module,
                     lr: float = 1e-4,
                     weight_decay: float = 1e-5) -> Optimizer:
     """
-    Create optimizer.
+    创建优化器。
     
-    Args:
-        model: PyTorch model
-        optimizer_name: Optimizer name ('adam', 'sgd', 'adamw')
-        lr: Learning rate
-        weight_decay: Weight decay
+    参数:
+        model: PyTorch 模型
+        optimizer_name: 优化器名称 ('adam', 'sgd', 'adamw')
+        lr: 学习率
+        weight_decay: 权重衰减
         
-    Returns:
-        Optimizer
+    返回:
+        优化器
     """
     optimizer_name = optimizer_name.lower()
     
@@ -397,9 +397,9 @@ def create_optimizer(model: nn.Module,
             weight_decay=weight_decay
         )
     else:
-        raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+        raise ValueError(f"不支持的优化器: {optimizer_name}")
     
-    logger.info(f"Created optimizer: {optimizer_name}, lr={lr}")
+    logger.info(f"已创建优化器: {optimizer_name}, lr={lr}")
     return optimizer
 
 
@@ -407,15 +407,15 @@ def create_scheduler(optimizer: Optimizer,
                     scheduler_name: str = 'reduce_on_plateau',
                     **kwargs) -> Optional[_LRScheduler]:
     """
-    Create learning rate scheduler.
+    创建学习率调度器。
     
-    Args:
-        optimizer: Optimizer
-        scheduler_name: Scheduler name ('reduce_on_plateau', 'cosine', 'step', None)
-        **kwargs: Additional scheduler parameters
+    参数:
+        optimizer: 优化器
+        scheduler_name: 调度器名称 ('reduce_on_plateau', 'cosine', 'step', None)
+        **kwargs: 额外的调度器参数
         
-    Returns:
-        Scheduler or None
+    返回:
+        调度器或 None
     """
     if scheduler_name is None or scheduler_name.lower() == 'none':
         return None
@@ -443,7 +443,7 @@ def create_scheduler(optimizer: Optimizer,
             gamma=kwargs.get('gamma', 0.1)
         )
     else:
-        raise ValueError(f"Unsupported scheduler: {scheduler_name}")
+        raise ValueError(f"不支持的调度器: {scheduler_name}")
     
-    logger.info(f"Created scheduler: {scheduler_name}")
+    logger.info(f"已创建调度器: {scheduler_name}")
     return scheduler

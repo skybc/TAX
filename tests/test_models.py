@@ -1,10 +1,10 @@
 """
-Unit tests for model definitions.
+模型定义的单元测试。
 
-Tests:
-- Model architecture creation
-- Forward pass
-- Output shapes
+测试内容：
+- 模型架构创建
+- 前向传播
+- 输出形状
 """
 
 import pytest
@@ -15,11 +15,11 @@ from src.models.segmentation_models import SegmentationModel
 
 
 class TestSegmentationModelCreation:
-    """Tests for segmentation model creation."""
+    """分割模型创建测试。"""
     
     @pytest.mark.unit
     def test_create_unet(self):
-        """Test U-Net model creation."""
+        """测试 U-Net 模型创建。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet34',
@@ -32,7 +32,7 @@ class TestSegmentationModelCreation:
     
     @pytest.mark.unit
     def test_create_deeplabv3plus(self):
-        """Test DeepLabV3+ model creation."""
+        """测试 DeepLabV3+ 模型创建。"""
         model = SegmentationModel(
             architecture='deeplabv3plus',
             encoder_name='resnet50',
@@ -45,7 +45,7 @@ class TestSegmentationModelCreation:
     
     @pytest.mark.unit
     def test_create_fpn(self):
-        """Test FPN model creation."""
+        """测试 FPN 模型创建。"""
         model = SegmentationModel(
             architecture='fpn',
             encoder_name='resnet18',
@@ -58,7 +58,7 @@ class TestSegmentationModelCreation:
     
     @pytest.mark.unit
     def test_invalid_architecture(self):
-        """Test error handling for invalid architecture."""
+        """测试无效架构的错误处理。"""
         with pytest.raises((ValueError, KeyError)):
             SegmentationModel(
                 architecture='invalid_arch',
@@ -69,30 +69,30 @@ class TestSegmentationModelCreation:
 
 
 class TestModelForwardPass:
-    """Tests for model forward pass."""
+    """模型前向传播测试。"""
     
     @pytest.mark.unit
     def test_unet_forward(self):
-        """Test U-Net forward pass."""
+        """测试 U-Net 前向传播。"""
         model = SegmentationModel(
             architecture='unet',
-            encoder_name='resnet18',  # Smaller for faster test
+            encoder_name='resnet18',  # 使用较小的模型以加快测试速度
             in_channels=3,
             num_classes=1
         )
         
-        # Create dummy input
+        # 创建虚拟输入
         x = torch.randn(2, 3, 256, 256)  # Batch=2, C=3, H=256, W=256
         
-        # Forward pass
+        # 前向传播
         output = model(x)
         
-        # Check output shape
+        # 检查输出形状
         assert output.shape == (2, 1, 256, 256)
     
     @pytest.mark.unit
     def test_model_training_mode(self):
-        """Test model in training mode."""
+        """测试训练模式下的模型。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet18',
@@ -110,7 +110,7 @@ class TestModelForwardPass:
     
     @pytest.mark.unit
     def test_model_eval_mode(self):
-        """Test model in evaluation mode."""
+        """测试评估模式下的模型。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet18',
@@ -129,11 +129,11 @@ class TestModelForwardPass:
 
 
 class TestModelDeviceHandling:
-    """Tests for model device management."""
+    """模型设备管理测试。"""
     
     @pytest.mark.unit
     def test_model_cpu(self):
-        """Test model on CPU."""
+        """测试 CPU 上的模型。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet18',
@@ -150,9 +150,9 @@ class TestModelDeviceHandling:
     @pytest.mark.unit
     @pytest.mark.requires_gpu
     def test_model_cuda(self):
-        """Test model on CUDA."""
+        """测试 CUDA 上的模型。"""
         if not torch.cuda.is_available():
-            pytest.skip("CUDA not available")
+            pytest.skip("CUDA 不可用")
         
         model = SegmentationModel(
             architecture='unet',
@@ -169,11 +169,11 @@ class TestModelDeviceHandling:
 
 
 class TestModelParameters:
-    """Tests for model parameters."""
+    """模型参数测试。"""
     
     @pytest.mark.unit
     def test_model_has_parameters(self):
-        """Test that model has learnable parameters."""
+        """测试模型是否具有可学习参数。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet18',
@@ -184,13 +184,13 @@ class TestModelParameters:
         params = list(model.parameters())
         assert len(params) > 0
         
-        # Check parameters require gradients
+        # 检查参数是否需要梯度
         trainable_params = [p for p in params if p.requires_grad]
         assert len(trainable_params) > 0
     
     @pytest.mark.unit
     def test_model_parameter_count(self):
-        """Test model parameter count."""
+        """测试模型参数计数。"""
         model = SegmentationModel(
             architecture='unet',
             encoder_name='resnet18',
@@ -203,7 +203,7 @@ class TestModelParameters:
         
         assert total_params > 0
         assert trainable_params > 0
-        assert trainable_params == total_params  # All params should be trainable
+        assert trainable_params == total_params  # 所有参数都应该是可训练的
 
 
 if __name__ == "__main__":

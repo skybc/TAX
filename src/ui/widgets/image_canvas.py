@@ -1,11 +1,11 @@
 """
-Image canvas widget for displaying and interacting with images.
+用于显示和与图像交互的图像画布小部件。
 
-This widget provides:
-- Image display with zoom and pan
-- Mouse interaction (click, drag, draw)
-- Coordinate display
-- Annotation overlay
+此小部件提供：
+- 带有缩放和平移的图像显示
+- 鼠标交互（点击、拖动、绘制）
+- 坐标显示
+- 标注叠加
 """
 
 import numpy as np
@@ -27,55 +27,55 @@ logger = get_logger(__name__)
 
 class ImageCanvas(QGraphicsView):
     """
-    Image canvas widget based on QGraphicsView.
+    基于 QGraphicsView 的图像画布小部件。
     
-    Provides image display with zoom, pan, and mouse interaction capabilities.
+    提供带有缩放、平移和鼠标交互功能的图像显示。
     
-    Signals:
-        image_loaded: Emitted when image is loaded
-        mouse_moved: Emitted when mouse moves over image (x, y coordinates)
-        mouse_clicked: Emitted when mouse is clicked (x, y, button)
-        zoom_changed: Emitted when zoom level changes (zoom_factor)
+    信号:
+        image_loaded: 图像加载时发出
+        mouse_moved: 鼠标在图像上移动时发出（x, y 坐标）
+        mouse_clicked: 鼠标点击时发出（x, y, 按钮）
+        zoom_changed: 缩放级别更改时发出（zoom_factor）
     """
     
-    # Signals
+    # 信号
     image_loaded = pyqtSignal()
-    mouse_moved = pyqtSignal(int, int)  # x, y in image coordinates
-    mouse_clicked = pyqtSignal(int, int, int)  # x, y, button (1=left, 2=right, 4=middle)
+    mouse_moved = pyqtSignal(int, int)  # 图像坐标中的 x, y
+    mouse_clicked = pyqtSignal(int, int, int)  # x, y, 按钮 (1=左键, 2=右键, 4=中键)
     zoom_changed = pyqtSignal(float)
     
     def __init__(self, parent: Optional[QWidget] = None):
         """
-        Initialize ImageCanvas.
+        初始化 ImageCanvas。
         
-        Args:
-            parent: Parent widget
+        参数:
+            parent: 父小部件
         """
         super().__init__(parent)
         
-        # Create graphics scene
+        # 创建图形场景
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
         
-        # Image item
+        # 图像项
         self.image_item: Optional[QGraphicsPixmapItem] = None
         self.current_image: Optional[np.ndarray] = None
         self.image_path: Optional[str] = None
         
-        # Zoom settings
+        # 缩放设置
         self.zoom_factor = 1.0
         self.min_zoom = 0.1
         self.max_zoom = 10.0
         self.zoom_step = 1.2
         
-        # Pan settings
+        # 平移设置
         self.is_panning = False
         self.pan_start_pos = QPoint()
         
-        # Mouse tracking
+        # 鼠标追踪
         self.setMouseTracking(True)
         
-        # View settings
+        # 视图设置
         self.setRenderHint(QPainter.Antialiasing)
         self.setRenderHint(QPainter.SmoothPixmapTransform)
         self.setDragMode(QGraphicsView.NoDrag)
@@ -84,106 +84,111 @@ class ImageCanvas(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
-        # Background color
+        # 背景颜色
         self.setBackgroundBrush(QColor("#2b2b2b"))
         
-        logger.info("ImageCanvas initialized")
+        logger.info("ImageCanvas 已初始化")
     
     def load_image(self, image: np.ndarray, image_path: Optional[str] = None):
         """
-        Load and display an image.
+        加载并显示图像。
         
-        Args:
-            image: Image as numpy array (HxWxC) in RGB format
-            image_path: Optional path to the image file
+        参数:
+            image: RGB 格式的 numpy 数组 (HxWxC) 图像
+            image_path: 图像文件的可选路径
         """
         if image is None or image.size == 0:
-            logger.error("Cannot load empty or None image")
+            logger.error("无法加载空或 None 图像")
             return
         
         try:
-            # Store image
-            self.current_image = image.copy()
+            # 存储图像（确保内存连续）
+            self.current_image = np.ascontiguousarray(image).copy()
             self.image_path = image_path
             
-            # Convert numpy array to QImage
-            height, width = image.shape[:2]
+            # 将 numpy 数组转换为 QImage
+            height, width = self.current_image.shape[:2]
             
-            if len(image.shape) == 2:  # Grayscale
+            if len(self.current_image.shape) == 2:  # 灰度图
+                bytes_per_line = width
                 qimage = QImage(
-                    image.data, width, height, width,
+                    self.current_image.tobytes(), width, height, bytes_per_line,
                     QImage.Format_Grayscale8
                 )
-            elif image.shape[2] == 3:  # RGB
+            elif self.current_image.shape[2] == 3:  # RGB
                 bytes_per_line = 3 * width
                 qimage = QImage(
-                    image.data, width, height, bytes_per_line,
+                    self.current_image.tobytes(), width, height, bytes_per_line,
                     QImage.Format_RGB888
                 )
-            elif image.shape[2] == 4:  # RGBA
+            elif self.current_image.shape[2] == 4:  # RGBA
                 bytes_per_line = 4 * width
                 qimage = QImage(
-                    image.data, width, height, bytes_per_line,
+                    self.current_image.tobytes(), width, height, bytes_per_line,
                     QImage.Format_RGBA8888
                 )
             else:
-                logger.error(f"Unsupported image format with {image.shape[2]} channels")
+                logger.error(f"不支持具有 {self.current_image.shape[2]} 个通道的图像格式")
                 return
             
-            # Convert to QPixmap
+            # 转换为 QPixmap
             pixmap = QPixmap.fromImage(qimage)
             
-            # Clear scene and add image
+            if pixmap.isNull():
+                logger.error("转换图像为 QPixmap 失败")
+                return
+            
+            # 清除场景并添加图像
             self.scene.clear()
             self.image_item = self.scene.addPixmap(pixmap)
             
-            # Reset zoom
+            # 重置缩放
             self.reset_zoom()
             
-            # Emit signal
+            # 发出信号
             self.image_loaded.emit()
             
-            logger.info(f"Loaded image: shape={image.shape}, path={image_path}")
+            logger.info(f"已加载图像: 形状={self.current_image.shape}, 路径={image_path}")
             
         except Exception as e:
-            logger.error(f"Error loading image: {e}", exc_info=True)
+            logger.error(f"加载图像时出错: {e}", exc_info=True)
     
     def clear(self):
-        """Clear the canvas."""
+        """清除画布。"""
         self.scene.clear()
         self.image_item = None
         self.current_image = None
         self.image_path = None
         self.zoom_factor = 1.0
-        logger.debug("Canvas cleared")
+        logger.debug("画布已清除")
     
     def get_image(self) -> Optional[np.ndarray]:
         """
-        Get the current image.
+        获取当前图像。
         
-        Returns:
-            Current image as numpy array or None
+        返回:
+            当前图像的 numpy 数组或 None
         """
         return self.current_image.copy() if self.current_image is not None else None
     
     def zoom_in(self):
-        """Zoom in."""
+        """放大。"""
         self.zoom(self.zoom_step)
     
     def zoom_out(self):
-        """Zoom out."""
+        """缩小。"""
         self.zoom(1.0 / self.zoom_step)
     
     def zoom(self, factor: float):
         """
-        Apply zoom factor.
+        应用缩放因子。
         
-        Args:
-            factor: Zoom multiplication factor
+        参数:
+            factor: 缩放倍数
         """
         new_zoom = self.zoom_factor * factor
         
-        # Clamp zoom level
+        # 限制缩放级别
         if new_zoom < self.min_zoom or new_zoom > self.max_zoom:
             return
         
@@ -191,38 +196,38 @@ class ImageCanvas(QGraphicsView):
         self.zoom_factor = new_zoom
         
         self.zoom_changed.emit(self.zoom_factor)
-        logger.debug(f"Zoom changed: {self.zoom_factor:.2f}x")
+        logger.debug(f"缩放已更改: {self.zoom_factor:.2f}x")
     
     def reset_zoom(self):
-        """Reset zoom to fit image in view."""
+        """重置缩放以使图像适应视图。"""
         if self.image_item is None:
             return
         
-        # Reset transform
+        # 重置变换
         self.resetTransform()
         self.zoom_factor = 1.0
         
-        # Fit image in view
+        # 使图像适应视图
         self.fitInView(self.image_item, Qt.KeepAspectRatio)
         
-        # Get actual zoom factor
+        # 获取实际缩放因子
         transform = self.transform()
         self.zoom_factor = transform.m11()
         
         self.zoom_changed.emit(self.zoom_factor)
-        logger.debug(f"Zoom reset to fit: {self.zoom_factor:.2f}x")
+        logger.debug(f"缩放已重置为适应视图: {self.zoom_factor:.2f}x")
     
     def wheelEvent(self, event: QWheelEvent):
         """
-        Handle mouse wheel event for zooming.
+        处理用于缩放的鼠标滚轮事件。
         
-        Args:
-            event: Wheel event
+        参数:
+            event: 滚轮事件
         """
         if self.image_item is None:
             return
         
-        # Get wheel delta
+        # 获取滚轮增量
         delta = event.angleDelta().y()
         
         if delta > 0:
@@ -232,16 +237,16 @@ class ImageCanvas(QGraphicsView):
     
     def mousePressEvent(self, event: QMouseEvent):
         """
-        Handle mouse press event.
+        处理鼠标按下事件。
         
-        Args:
-            event: Mouse event
+        参数:
+            event: 鼠标事件
         """
         if self.image_item is None:
             super().mousePressEvent(event)
             return
         
-        # Middle button or Ctrl+Left for panning
+        # 中键或 Ctrl+左键用于平移
         if (event.button() == Qt.MiddleButton or 
             (event.button() == Qt.LeftButton and 
              event.modifiers() & Qt.ControlModifier)):
@@ -251,34 +256,34 @@ class ImageCanvas(QGraphicsView):
             event.accept()
             return
         
-        # Convert to scene coordinates
+        # 转换为场景坐标
         scene_pos = self.mapToScene(event.pos())
         
-        # Check if click is on image
+        # 检查点击是否在图像上
         if self.image_item.contains(scene_pos):
-            # Convert to image coordinates
+            # 转换为图像坐标
             image_pos = self.image_item.mapFromScene(scene_pos)
             x, y = int(image_pos.x()), int(image_pos.y())
             
-            # Emit signal
+            # 发出信号
             button = event.button()
             self.mouse_clicked.emit(x, y, button)
-            logger.debug(f"Mouse clicked: ({x}, {y}), button={button}")
+            logger.debug(f"鼠标已点击: ({x}, {y}), 按钮={button}")
         
         super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event: QMouseEvent):
         """
-        Handle mouse move event.
+        处理鼠标移动事件。
         
-        Args:
-            event: Mouse event
+        参数:
+            event: 鼠标事件
         """
         if self.image_item is None:
             super().mouseMoveEvent(event)
             return
         
-        # Handle panning
+        # 处理平移
         if self.is_panning:
             delta = event.pos() - self.pan_start_pos
             self.horizontalScrollBar().setValue(
@@ -291,26 +296,26 @@ class ImageCanvas(QGraphicsView):
             event.accept()
             return
         
-        # Convert to scene coordinates
+        # 转换为场景坐标
         scene_pos = self.mapToScene(event.pos())
         
-        # Check if mouse is on image
+        # 检查鼠标是否在图像上
         if self.image_item.contains(scene_pos):
-            # Convert to image coordinates
+            # 转换为图像坐标
             image_pos = self.image_item.mapFromScene(scene_pos)
             x, y = int(image_pos.x()), int(image_pos.y())
             
-            # Emit signal
+            # 发出信号
             self.mouse_moved.emit(x, y)
         
         super().mouseMoveEvent(event)
     
     def mouseReleaseEvent(self, event: QMouseEvent):
         """
-        Handle mouse release event.
+        处理鼠标释放事件。
         
-        Args:
-            event: Mouse event
+        参数:
+            event: 鼠标事件
         """
         if self.is_panning:
             self.is_panning = False
@@ -322,19 +327,19 @@ class ImageCanvas(QGraphicsView):
     
     def get_visible_rect(self) -> QRectF:
         """
-        Get the visible rectangle in scene coordinates.
+        获取场景坐标中的可见矩形。
         
-        Returns:
-            Visible rectangle
+        返回:
+            可见矩形
         """
         return self.mapToScene(self.viewport().rect()).boundingRect()
     
     def get_image_rect(self) -> Optional[QRectF]:
         """
-        Get the image rectangle in scene coordinates.
+        获取场景坐标中的图像矩形。
         
-        Returns:
-            Image rectangle or None if no image loaded
+        返回:
+            图像矩形，如果未加载图像则返回 None
         """
         if self.image_item is None:
             return None
@@ -342,13 +347,13 @@ class ImageCanvas(QGraphicsView):
     
     def scene_to_image_coords(self, scene_pos: QPointF) -> Tuple[int, int]:
         """
-        Convert scene coordinates to image coordinates.
+        将场景坐标转换为图像坐标。
         
-        Args:
-            scene_pos: Position in scene coordinates
+        参数:
+            scene_pos: 场景坐标中的位置
             
-        Returns:
-            (x, y) in image coordinates
+        返回:
+            图像坐标中的 (x, y)
         """
         if self.image_item is None:
             return (0, 0)
@@ -358,14 +363,14 @@ class ImageCanvas(QGraphicsView):
     
     def image_to_scene_coords(self, x: int, y: int) -> QPointF:
         """
-        Convert image coordinates to scene coordinates.
+        将图像坐标转换为场景坐标。
         
-        Args:
-            x: X coordinate in image
-            y: Y coordinate in image
+        参数:
+            x: 图像中的 X 坐标
+            y: 图像中的 Y 坐标
             
-        Returns:
-            Position in scene coordinates
+        返回:
+            场景坐标中的位置
         """
         if self.image_item is None:
             return QPointF(0, 0)
@@ -375,63 +380,63 @@ class ImageCanvas(QGraphicsView):
 
 class ImageCanvasWithInfo(QWidget):
     """
-    ImageCanvas with additional information display.
+    带有附加信息显示的 ImageCanvas。
     
-    Combines ImageCanvas with a label showing image info and mouse coordinates.
+    将 ImageCanvas 与显示图像信息和鼠标坐标的标签相结合。
     """
     
     def __init__(self, parent: Optional[QWidget] = None):
         """
-        Initialize ImageCanvasWithInfo.
+        初始化 ImageCanvasWithInfo。
         
-        Args:
-            parent: Parent widget
+        参数:
+            parent: 父小部件
         """
         super().__init__(parent)
         
-        # Create layout
+        # 创建布局
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Create canvas
+        # 创建画布
         self.canvas = ImageCanvas(self)
         layout.addWidget(self.canvas)
         
-        # Create info label
-        self.info_label = QLabel("No image loaded")
+        # 创建信息标签
+        self.info_label = QLabel("未加载图像")
         self.info_label.setStyleSheet(
             "QLabel { background-color: #3c3c3c; color: #ffffff; "
             "padding: 4px; font-family: monospace; }"
         )
         layout.addWidget(self.info_label)
         
-        # Connect signals
+        # 连接信号
         self.canvas.image_loaded.connect(self._update_info)
         self.canvas.mouse_moved.connect(self._update_coords)
         self.canvas.zoom_changed.connect(self._update_zoom)
     
     def load_image(self, image: np.ndarray, image_path: Optional[str] = None):
         """
-        Load and display an image.
+        加载并显示图像。
         
-        Args:
-            image: Image as numpy array
-            image_path: Optional path to the image file
+        参数:
+            image: numpy 数组格式的图像
+            image_path: 图像文件的可选路径
         """
         self.canvas.load_image(image, image_path)
     
     def _update_info(self):
-        """Update info label with image information."""
+        """使用图像信息更新信息标签。"""
         if self.canvas.current_image is None:
-            self.info_label.setText("No image loaded")
+            self.info_label.setText("未加载图像")
             return
         
         image = self.canvas.current_image
         h, w = image.shape[:2]
         channels = image.shape[2] if len(image.shape) > 2 else 1
         
-        info_text = f"Size: {w}x{h} | Channels: {channels} | Zoom: {self.canvas.zoom_factor:.2f}x"
+        info_text = f"尺寸: {w}x{h} | 通道: {channels} | 缩放: {self.canvas.zoom_factor:.2f}x"
         
         if self.canvas.image_path:
             info_text = f"{self.canvas.image_path} | " + info_text
@@ -439,27 +444,27 @@ class ImageCanvasWithInfo(QWidget):
         self.info_label.setText(info_text)
     
     def _update_coords(self, x: int, y: int):
-        """Update info label with mouse coordinates."""
+        """使用鼠标坐标更新信息标签。"""
         if self.canvas.current_image is None:
             return
         
         image = self.canvas.current_image
         h, w = image.shape[:2]
         
-        # Get pixel value if coordinates are valid
+        # 如果坐标有效，则获取像素值
         pixel_info = ""
         if 0 <= x < w and 0 <= y < h:
-            if len(image.shape) == 2:  # Grayscale
+            if len(image.shape) == 2:  # 灰度图
                 value = image[y, x]
-                pixel_info = f" | Value: {value}"
+                pixel_info = f" | 值: {value}"
             elif image.shape[2] == 3:  # RGB
                 r, g, b = image[y, x]
                 pixel_info = f" | RGB: ({r}, {g}, {b})"
         
-        info_text = f"Position: ({x}, {y}){pixel_info} | Zoom: {self.canvas.zoom_factor:.2f}x"
+        info_text = f"位置: ({x}, {y}){pixel_info} | 缩放: {self.canvas.zoom_factor:.2f}x"
         
         self.info_label.setText(info_text)
     
     def _update_zoom(self, zoom: float):
-        """Update info label with zoom level."""
+        """使用缩放级别更新信息标签。"""
         self._update_info()

@@ -1,11 +1,11 @@
 """
-Post-processing utilities for segmentation masks.
+分割掩码的后处理实用程序。
 
-This module provides:
-- Morphological operations
-- Connected component analysis
-- Contour extraction
-- Mask refinement
+此模块提供：
+- 形态学操作
+- 连通分量分析
+- 轮廓提取
+- 掩码细化
 """
 
 import numpy as np
@@ -21,26 +21,26 @@ logger = get_logger(__name__)
 def remove_small_objects(mask: np.ndarray, 
                          min_size: int = 100) -> np.ndarray:
     """
-    Remove small connected components.
+    移除小的连通分量。
     
-    Args:
-        mask: Binary mask (HxW)
-        min_size: Minimum object size in pixels
+    参数:
+        mask: 二值掩码 (HxW)
+        min_size: 以像素为单位的最小对象大小
         
-    Returns:
-        Filtered mask
+    返回:
+        过滤后的掩码
     """
-    # Label connected components
+    # 标记连通分量
     labeled, num_features = ndimage.label(mask)
     
-    # Get sizes
+    # 获取大小
     sizes = ndimage.sum(mask, labeled, range(num_features + 1))
     
-    # Create mask of large objects
+    # 创建大对象的掩码
     mask_size = sizes >= min_size
-    mask_size[0] = 0  # Background
+    mask_size[0] = 0  # 背景
     
-    # Apply mask
+    # 应用掩码
     filtered = mask_size[labeled]
     
     return filtered.astype(np.uint8) * 255
@@ -48,24 +48,24 @@ def remove_small_objects(mask: np.ndarray,
 
 def keep_largest_component(mask: np.ndarray) -> np.ndarray:
     """
-    Keep only the largest connected component.
+    仅保留最大的连通分量。
     
-    Args:
-        mask: Binary mask (HxW)
+    参数:
+        mask: 二值掩码 (HxW)
         
-    Returns:
-        Mask with largest component only
+    返回:
+        仅包含最大分量的掩码
     """
-    # Label connected components
+    # 标记连通分量
     labeled, num_features = ndimage.label(mask)
     
     if num_features == 0:
         return mask
     
-    # Get sizes
+    # 获取大小
     sizes = ndimage.sum(mask, labeled, range(1, num_features + 1))
     
-    # Keep largest
+    # 保留最大的
     largest_label = np.argmax(sizes) + 1
     largest_mask = (labeled == largest_label).astype(np.uint8) * 255
     
@@ -74,32 +74,32 @@ def keep_largest_component(mask: np.ndarray) -> np.ndarray:
 
 def fill_holes(mask: np.ndarray, max_hole_size: Optional[int] = None) -> np.ndarray:
     """
-    Fill holes in binary mask.
+    填充二值掩码中的孔洞。
     
-    Args:
-        mask: Binary mask (HxW)
-        max_hole_size: Maximum hole size to fill (None for all)
+    参数:
+        mask: 二值掩码 (HxW)
+        max_hole_size: 要填充的最大孔洞大小（None 表示填充所有）
         
-    Returns:
-        Filled mask
+    返回:
+        填充后的掩码
     """
-    # Binarize
+    # 二值化
     binary_mask = (mask > 0).astype(np.uint8)
     
-    # Fill holes
+    # 填充孔洞
     filled = ndimage.binary_fill_holes(binary_mask)
     
     if max_hole_size is not None:
-        # Find holes
+        # 查找孔洞
         holes = filled & ~binary_mask
         
-        # Label holes
+        # 标记孔洞
         labeled_holes, num_holes = ndimage.label(holes)
         
-        # Get hole sizes
+        # 获取孔洞大小
         hole_sizes = ndimage.sum(holes, labeled_holes, range(1, num_holes + 1))
         
-        # Keep only small holes filled
+        # 仅保留填充的小孔洞
         for i, size in enumerate(hole_sizes, 1):
             if size > max_hole_size:
                 filled[labeled_holes == i] = 0
@@ -110,14 +110,14 @@ def fill_holes(mask: np.ndarray, max_hole_size: Optional[int] = None) -> np.ndar
 def morphological_opening(mask: np.ndarray, 
                          kernel_size: int = 5) -> np.ndarray:
     """
-    Apply morphological opening (erosion followed by dilation).
+    应用形态学开运算（先腐蚀后膨胀）。
     
-    Args:
-        mask: Binary mask (HxW)
-        kernel_size: Size of structuring element
+    参数:
+        mask: 二值掩码 (HxW)
+        kernel_size: 结构元素的大小
         
-    Returns:
-        Processed mask
+    返回:
+        处理后的掩码
     """
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
@@ -127,14 +127,14 @@ def morphological_opening(mask: np.ndarray,
 def morphological_closing(mask: np.ndarray, 
                          kernel_size: int = 5) -> np.ndarray:
     """
-    Apply morphological closing (dilation followed by erosion).
+    应用形态学闭运算（先膨胀后腐蚀）。
     
-    Args:
-        mask: Binary mask (HxW)
-        kernel_size: Size of structuring element
+    参数:
+        mask: 二值掩码 (HxW)
+        kernel_size: 结构元素的大小
         
-    Returns:
-        Processed mask
+    返回:
+        处理后的掩码
     """
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -144,27 +144,27 @@ def morphological_closing(mask: np.ndarray,
 def smooth_contours(mask: np.ndarray, 
                    epsilon_factor: float = 0.01) -> np.ndarray:
     """
-    Smooth mask contours using Douglas-Peucker algorithm.
+    使用 Douglas-Peucker 算法平滑掩码轮廓。
     
-    Args:
-        mask: Binary mask (HxW)
-        epsilon_factor: Approximation accuracy factor
+    参数:
+        mask: 二值掩码 (HxW)
+        epsilon_factor: 近似精度因子
         
-    Returns:
-        Smoothed mask
+    返回:
+        平滑后的掩码
     """
-    # Find contours
+    # 查找轮廓
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Smooth contours
+    # 平滑轮廓
     smoothed_mask = np.zeros_like(mask)
     
     for contour in contours:
-        # Approximate contour
+        # 近似轮廓
         epsilon = epsilon_factor * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
         
-        # Draw smoothed contour
+        # 绘制平滑后的轮廓
         cv2.fillPoly(smoothed_mask, [approx], 255)
     
     return smoothed_mask
@@ -177,34 +177,34 @@ def refine_mask(mask: np.ndarray,
                smooth: bool = True,
                closing_size: int = 5) -> np.ndarray:
     """
-    Apply complete mask refinement pipeline.
+    应用完整的掩码细化流水线。
     
-    Args:
-        mask: Binary mask (HxW)
-        remove_small: Whether to remove small objects
-        min_size: Minimum object size
-        fill_holes_flag: Whether to fill holes
-        smooth: Whether to smooth contours
-        closing_size: Kernel size for morphological closing
+    参数:
+        mask: 二值掩码 (HxW)
+        remove_small: 是否移除小对象
+        min_size: 最小对象大小
+        fill_holes_flag: 是否填充孔洞
+        smooth: 是否平滑轮廓
+        closing_size: 形态学闭运算的核大小
         
-    Returns:
-        Refined mask
+    返回:
+        细化后的掩码
     """
     refined = mask.copy()
     
-    # Morphological closing (fill small gaps)
+    # 形态学闭运算（填充小间隙）
     if closing_size > 0:
         refined = morphological_closing(refined, closing_size)
     
-    # Fill holes
+    # 填充孔洞
     if fill_holes_flag:
         refined = fill_holes(refined)
     
-    # Remove small objects
+    # 移除小对象
     if remove_small:
         refined = remove_small_objects(refined, min_size)
     
-    # Smooth contours
+    # 平滑轮廓
     if smooth:
         refined = smooth_contours(refined, epsilon_factor=0.005)
     
@@ -213,13 +213,13 @@ def refine_mask(mask: np.ndarray,
 
 def extract_contours(mask: np.ndarray) -> List[np.ndarray]:
     """
-    Extract contours from binary mask.
+    从二值掩码中提取轮廓。
     
-    Args:
-        mask: Binary mask (HxW)
+    参数:
+        mask: 二值掩码 (HxW)
         
-    Returns:
-        List of contours (each is Nx1x2 array)
+    返回:
+        轮廓列表（每个都是 Nx1x2 数组）
     """
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
@@ -227,13 +227,13 @@ def extract_contours(mask: np.ndarray) -> List[np.ndarray]:
 
 def get_bounding_boxes(mask: np.ndarray) -> List[Tuple[int, int, int, int]]:
     """
-    Get bounding boxes of all objects in mask.
+    获取掩码中所有对象的边界框。
     
-    Args:
-        mask: Binary mask (HxW)
+    参数:
+        mask: 二值掩码 (HxW)
         
-    Returns:
-        List of bounding boxes (x, y, w, h)
+    返回:
+        边界框列表 (x, y, w, h)
     """
     contours = extract_contours(mask)
     bboxes = []
@@ -248,19 +248,19 @@ def get_bounding_boxes(mask: np.ndarray) -> List[Tuple[int, int, int, int]]:
 def compute_mask_confidence(prob_map: np.ndarray, 
                            mask: np.ndarray) -> float:
     """
-    Compute confidence score for mask based on probability map.
+    基于概率图计算掩码的置信度分数。
     
-    Args:
-        prob_map: Probability map (HxW) in [0, 1]
-        mask: Binary mask (HxW)
+    参数:
+        prob_map: [0, 1] 范围内的概率图 (HxW)
+        mask: 二值掩码 (HxW)
         
-    Returns:
-        Confidence score (mean probability in mask region)
+    返回:
+        置信度分数（掩码区域内的平均概率）
     """
     if mask.sum() == 0:
         return 0.0
     
-    # Get probabilities in mask region
+    # 获取掩码区域内的概率
     mask_binary = (mask > 0).astype(bool)
     probs = prob_map[mask_binary]
     
@@ -271,80 +271,80 @@ def apply_crf(image: np.ndarray,
              prob_map: np.ndarray,
              num_iterations: int = 10) -> np.ndarray:
     """
-    Apply Conditional Random Field (CRF) for mask refinement.
+    应用条件随机场 (CRF) 进行掩码细化。
     
-    Note: Requires pydensecrf library (optional dependency)
+    注意：需要 pydensecrf 库（可选依赖项）
     
-    Args:
-        image: Original image (HxWx3)
-        prob_map: Probability map (HxW) in [0, 1]
-        num_iterations: Number of CRF iterations
+    参数:
+        image: 原始图像 (HxWx3)
+        prob_map: [0, 1] 范围内的概率图 (HxW)
+        num_iterations: CRF 迭代次数
         
-    Returns:
-        Refined mask
+    返回:
+        细化后的掩码
     """
     try:
         import pydensecrf.densecrf as dcrf
         from pydensecrf.utils import unary_from_labels, create_pairwise_bilateral
         
-        # Convert to labels
+        # 转换为标签
         labels = (prob_map > 0.5).astype(np.uint32)
         
-        # Setup CRF
+        # 设置 CRF
         h, w = prob_map.shape
         d = dcrf.DenseCRF2D(w, h, 2)
         
-        # Unary potential
+        # 一元势能
         U = unary_from_labels(labels, 2, gt_prob=0.7)
         d.setUnaryEnergy(U)
         
-        # Pairwise potentials
+        # 二元势能
         d.addPairwiseGaussian(sxy=3, compat=3)
         d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=image, compat=10)
         
-        # Inference
+        # 推理
         Q = d.inference(num_iterations)
         map_result = np.argmax(Q, axis=0).reshape(h, w)
         
         return (map_result * 255).astype(np.uint8)
         
     except ImportError:
-        logger.warning("pydensecrf not installed, skipping CRF refinement")
+        logger.warning("未安装 pydensecrf，跳过 CRF 细化")
         return (prob_map > 0.5).astype(np.uint8) * 255
 
 
 def compute_mask_metrics(pred_mask: np.ndarray, 
                         gt_mask: np.ndarray) -> dict:
     """
-    Compute metrics between predicted and ground truth masks.
+    计算预测掩码和真实掩码之间的指标。
     
-    Args:
-        pred_mask: Predicted mask (HxW)
-        gt_mask: Ground truth mask (HxW)
+    参数:
+        pred_mask: 预测掩码 (HxW)
+        gt_mask: 真实掩码 (HxW)
         
-    Returns:
-        Dictionary with metrics (IoU, Dice, etc.)
+    返回:
+        包含指标的字典（IoU、Dice 等）
     """
-    # Binarize
+    # 二值化
     pred_binary = (pred_mask > 0).astype(bool)
     gt_binary = (gt_mask > 0).astype(bool)
     
-    # Compute intersection and union
+    # 计算交集和并集
     intersection = np.logical_and(pred_binary, gt_binary).sum()
     union = np.logical_or(pred_binary, gt_binary).sum()
     pred_sum = pred_binary.sum()
     gt_sum = gt_binary.sum()
     
-    # Compute metrics
+    # 计算指标
     iou = intersection / (union + 1e-6)
     dice = 2 * intersection / (pred_sum + gt_sum + 1e-6)
     
-    # Pixel accuracy
+    # 像素准确率
     correct = (pred_binary == gt_binary).sum()
     total = pred_binary.size
     accuracy = correct / total
     
-    # Precision and recall
+    # 精确率和召回率
     tp = intersection
     fp = pred_sum - intersection
     fn = gt_sum - intersection
@@ -367,28 +367,28 @@ def create_comparison_image(image: np.ndarray,
                            pred_mask: np.ndarray,
                            gt_mask: Optional[np.ndarray] = None) -> np.ndarray:
     """
-    Create side-by-side comparison image.
+    创建并排对比图像。
     
-    Args:
-        image: Original image (HxWx3)
-        pred_mask: Predicted mask (HxW)
-        gt_mask: Ground truth mask (HxW), optional
+    参数:
+        image: 原始图像 (HxWx3)
+        pred_mask: 预测掩码 (HxW)
+        gt_mask: 真实掩码 (HxW)，可选
         
-    Returns:
-        Comparison image
+    返回:
+        对比图像
     """
     from src.utils.mask_utils import overlay_mask_on_image
     
-    # Create overlays
+    # 创建叠加层
     pred_overlay = overlay_mask_on_image(image, pred_mask, alpha=0.5, color=(0, 255, 0))
     
     if gt_mask is not None:
         gt_overlay = overlay_mask_on_image(image, gt_mask, alpha=0.5, color=(255, 0, 0))
         
-        # Concatenate: original | pred | gt
+        # 拼接：原始图 | 预测图 | 真实图
         comparison = np.concatenate([image, pred_overlay, gt_overlay], axis=1)
     else:
-        # Concatenate: original | pred
+        # 拼接：原始图 | 预测图
         comparison = np.concatenate([image, pred_overlay], axis=1)
     
     return comparison

@@ -1,10 +1,10 @@
 """
-Segmentation model definitions.
+分割模型定义。
 
-This module provides:
-- U-Net architecture
-- DeepLabV3+ architecture
-- Model builder utilities
+此模块提供：
+- U-Net 架构
+- DeepLabV3+ 架构
+- 模型构建实用程序
 """
 
 import torch
@@ -20,9 +20,9 @@ logger = get_logger(__name__)
 
 class UNet(nn.Module):
     """
-    U-Net architecture for semantic segmentation.
+    用于语义分割的 U-Net 架构。
     
-    Paper: https://arxiv.org/abs/1505.04597
+    论文: https://arxiv.org/abs/1505.04597
     """
     
     def __init__(self,
@@ -32,14 +32,14 @@ class UNet(nn.Module):
                  num_classes: int = 1,
                  activation: Optional[str] = None):
         """
-        Initialize U-Net model.
+        初始化 U-Net 模型。
         
-        Args:
-            encoder_name: Encoder backbone name (e.g., 'resnet34', 'efficientnet-b0')
-            encoder_weights: Pretrained weights ('imagenet' or None)
-            in_channels: Number of input channels
-            num_classes: Number of output classes
-            activation: Output activation ('sigmoid', 'softmax', or None)
+        参数:
+            encoder_name: 编码器主干名称（例如 'resnet34', 'efficientnet-b0'）
+            encoder_weights: 预训练权重（'imagenet' 或 None）
+            in_channels: 输入通道数
+            num_classes: 输出类别数
+            activation: 输出激活函数（'sigmoid', 'softmax' 或 None）
         """
         super().__init__()
         
@@ -54,14 +54,14 @@ class UNet(nn.Module):
         self.encoder_name = encoder_name
         self.num_classes = num_classes
         
-        logger.info(f"Created U-Net: encoder={encoder_name}, classes={num_classes}")
+        logger.info(f"已创建 U-Net: 编码器={encoder_name}, 类别数={num_classes}")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass."""
+        """前向传播。"""
         return self.model(x)
     
     def get_model_info(self) -> Dict:
-        """Get model information."""
+        """获取模型信息。"""
         return {
             'architecture': 'U-Net',
             'encoder': self.encoder_name,
@@ -72,9 +72,9 @@ class UNet(nn.Module):
 
 class DeepLabV3Plus(nn.Module):
     """
-    DeepLabV3+ architecture for semantic segmentation.
+    用于语义分割的 DeepLabV3+ 架构。
     
-    Paper: https://arxiv.org/abs/1802.02611
+    论文: https://arxiv.org/abs/1802.02611
     """
     
     def __init__(self,
@@ -84,14 +84,14 @@ class DeepLabV3Plus(nn.Module):
                  num_classes: int = 1,
                  activation: Optional[str] = None):
         """
-        Initialize DeepLabV3+ model.
+        初始化 DeepLabV3+ 模型。
         
-        Args:
-            encoder_name: Encoder backbone name
-            encoder_weights: Pretrained weights
-            in_channels: Number of input channels
-            num_classes: Number of output classes
-            activation: Output activation
+        参数:
+            encoder_name: 编码器主干名称
+            encoder_weights: 预训练权重
+            in_channels: 输入通道数
+            num_classes: 输出类别数
+            activation: 输出激活函数
         """
         super().__init__()
         
@@ -106,14 +106,14 @@ class DeepLabV3Plus(nn.Module):
         self.encoder_name = encoder_name
         self.num_classes = num_classes
         
-        logger.info(f"Created DeepLabV3+: encoder={encoder_name}, classes={num_classes}")
+        logger.info(f"已创建 DeepLabV3+: 编码器={encoder_name}, 类别数={num_classes}")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass."""
+        """前向传播。"""
         return self.model(x)
     
     def get_model_info(self) -> Dict:
-        """Get model information."""
+        """获取模型信息。"""
         return {
             'architecture': 'DeepLabV3+',
             'encoder': self.encoder_name,
@@ -124,9 +124,9 @@ class DeepLabV3Plus(nn.Module):
 
 class FPN(nn.Module):
     """
-    Feature Pyramid Network for semantic segmentation.
+    用于语义分割的特征金字塔网络 (FPN)。
     
-    Paper: https://arxiv.org/abs/1612.03144
+    论文: https://arxiv.org/abs/1612.03144
     """
     
     def __init__(self,
@@ -136,14 +136,14 @@ class FPN(nn.Module):
                  num_classes: int = 1,
                  activation: Optional[str] = None):
         """
-        Initialize FPN model.
+        初始化 FPN 模型。
         
-        Args:
-            encoder_name: Encoder backbone name
-            encoder_weights: Pretrained weights
-            in_channels: Number of input channels
-            num_classes: Number of output classes
-            activation: Output activation
+        参数:
+            encoder_name: 编码器主干名称
+            encoder_weights: 预训练权重
+            in_channels: 输入通道数
+            num_classes: 输出类别数
+            activation: 输出激活函数
         """
         super().__init__()
         
@@ -158,14 +158,14 @@ class FPN(nn.Module):
         self.encoder_name = encoder_name
         self.num_classes = num_classes
         
-        logger.info(f"Created FPN: encoder={encoder_name}, classes={num_classes}")
+        logger.info(f"已创建 FPN: 编码器={encoder_name}, 类别数={num_classes}")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass."""
+        """前向传播。"""
         return self.model(x)
     
     def get_model_info(self) -> Dict:
-        """Get model information."""
+        """获取模型信息。"""
         return {
             'architecture': 'FPN',
             'encoder': self.encoder_name,
@@ -181,21 +181,21 @@ def build_model(architecture: str,
                 num_classes: int = 1,
                 activation: Optional[str] = None) -> nn.Module:
     """
-    Build a segmentation model.
+    构建分割模型。
     
-    Args:
-        architecture: Model architecture ('unet', 'deeplabv3plus', 'fpn')
-        encoder_name: Encoder backbone name
-        encoder_weights: Pretrained weights
-        in_channels: Number of input channels
-        num_classes: Number of output classes
-        activation: Output activation
+    参数:
+        architecture: 模型架构 ('unet', 'deeplabv3plus', 'fpn')
+        encoder_name: 编码器主干名称
+        encoder_weights: 预训练权重
+        in_channels: 输入通道数
+        num_classes: 输出类别数
+        activation: 输出激活函数
         
-    Returns:
-        PyTorch model
+    返回:
+        PyTorch 模型
         
-    Raises:
-        ValueError: If architecture is not supported
+    抛出:
+        ValueError: 如果架构不受支持
     """
     architecture = architecture.lower()
     
@@ -224,43 +224,43 @@ def build_model(architecture: str,
             activation=activation
         )
     else:
-        raise ValueError(f"Unsupported architecture: {architecture}")
+        raise ValueError(f"不支持的架构: {architecture}")
     
-    logger.info(f"Built model: {architecture} with {encoder_name}")
+    logger.info(f"已构建模型: {architecture}，使用 {encoder_name}")
     return model
 
 
 def get_available_encoders() -> List[str]:
     """
-    Get list of available encoder backbones.
+    获取可用编码器主干列表。
     
-    Returns:
-        List of encoder names
+    返回:
+        编码器名称列表
     """
     return [
-        # ResNet family
+        # ResNet 系列
         'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-        # EfficientNet family
+        # EfficientNet 系列
         'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2',
         'efficientnet-b3', 'efficientnet-b4', 'efficientnet-b5',
-        # MobileNet family
+        # MobileNet 系列
         'mobilenet_v2',
-        # DenseNet family
+        # DenseNet 系列
         'densenet121', 'densenet169', 'densenet201',
-        # VGG family
+        # VGG 系列
         'vgg11', 'vgg13', 'vgg16', 'vgg19',
     ]
 
 
 def get_model_params_count(model: nn.Module) -> Dict:
     """
-    Get model parameter count statistics.
+    获取模型参数计数统计信息。
     
-    Args:
-        model: PyTorch model
+    参数:
+        model: PyTorch 模型
         
-    Returns:
-        Dictionary with parameter counts
+    返回:
+        包含参数计数的字典
     """
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -276,29 +276,29 @@ def get_model_params_count(model: nn.Module) -> Dict:
 
 def freeze_encoder(model: nn.Module):
     """
-    Freeze encoder weights (for fine-tuning).
+    冻结编码器权重（用于微调）。
     
-    Args:
-        model: Segmentation model
+    参数:
+        model: 分割模型
     """
     if hasattr(model, 'model') and hasattr(model.model, 'encoder'):
         for param in model.model.encoder.parameters():
             param.requires_grad = False
-        logger.info("Encoder weights frozen")
+        logger.info("编码器权重已冻结")
     else:
-        logger.warning("Could not freeze encoder (model structure not recognized)")
+        logger.warning("无法冻结编码器（无法识别模型结构）")
 
 
 def unfreeze_encoder(model: nn.Module):
     """
-    Unfreeze encoder weights.
+    解冻编码器权重。
     
-    Args:
-        model: Segmentation model
+    参数:
+        model: 分割模型
     """
     if hasattr(model, 'model') and hasattr(model.model, 'encoder'):
         for param in model.model.encoder.parameters():
             param.requires_grad = True
-        logger.info("Encoder weights unfrozen")
+        logger.info("编码器权重已解冻")
     else:
-        logger.warning("Could not unfreeze encoder (model structure not recognized)")
+        logger.warning("无法解冻编码器（无法识别模型结构）")

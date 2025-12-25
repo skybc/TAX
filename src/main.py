@@ -1,18 +1,18 @@
 """
-Main entry point for the Industrial Defect Segmentation System.
+工业缺陷分割系统的主入口点。
 
-This application provides a complete workflow for defect segmentation including:
-- Data management and annotation
-- SAM (Segment Anything) auto-annotation
-- Model training (U-Net, DeepLabV3+, YOLOv11-Seg)
-- Inference and visualization
-- Report generation
+此应用程序提供完整的缺陷分割工作流程，包括：
+- 数据管理和标注
+- SAM (Segment Anything) 自动标注
+- 模型训练 (U-Net, DeepLabV3+, YOLOv11-Seg)
+- 推理和可视化
+- 报告生成
 """
 
 import sys
 from pathlib import Path
 
-# Add project root to Python path
+# 将项目根目录添加到 Python 路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -24,8 +24,8 @@ from src.utils.file_utils import load_yaml, ensure_dir
 
 
 def main():
-    """Main application entry point."""
-    # Set up logging
+    """应用程序主入口点。"""
+    # 设置日志
     logger = setup_logger(
         name="IndustrialDefectSeg",
         level="INFO",
@@ -33,10 +33,10 @@ def main():
         console=True
     )
     logger.info("=" * 60)
-    logger.info("Industrial Defect Segmentation System Starting...")
+    logger.info("工业缺陷分割系统正在启动...")
     logger.info("=" * 60)
     
-    # Load configuration
+    # 加载配置
     try:
         config_path = project_root / "config" / "config.yaml"
         paths_config_path = project_root / "config" / "paths.yaml"
@@ -46,40 +46,44 @@ def main():
         paths_config = load_yaml(paths_config_path)
         hyperparams = load_yaml(hyperparams_config_path)
         
-        logger.info("Configuration loaded successfully")
+        logger.info("配置加载成功")
         
-        # Ensure required directories exist
+        # 确保所需的目录存在
         for path_key, path_value in paths_config['paths'].items():
-            if 'file' not in path_key.lower():
+            # 跳过文件路径（键中包含 'file' 或具有文件扩展名）
+            is_file_key = 'file' in path_key.lower()
+            is_file_path = any(path_value.lower().endswith(ext) for ext in ['.pth', '.pt', '.txt', '.json', '.yaml', '.yml'])
+            
+            if not is_file_key and not is_file_path:
                 ensure_dir(project_root / path_value)
         
     except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
+        logger.error(f"加载配置失败: {e}")
         sys.exit(1)
     
-    # Create Qt application
+    # 创建 Qt 应用程序
     app = QApplication(sys.argv)
     app.setApplicationName(config['app']['name'])
     app.setApplicationVersion(config['app']['version'])
     app.setOrganizationName(config['app']['author'])
     
-    # Create and show main window
+    # 创建并显示主窗口
     try:
         main_window = MainWindow(config, paths_config, hyperparams)
         main_window.show()
         
-        logger.info("Main window created and displayed")
-        logger.info("Application ready")
+        logger.info("主窗口已创建并显示")
+        logger.info("应用程序就绪")
         
     except Exception as e:
-        logger.error(f"Failed to create main window: {e}", exc_info=True)
+        logger.error(f"创建主窗口失败: {e}", exc_info=True)
         sys.exit(1)
     
-    # Run application
+    # 运行应用程序
     exit_code = app.exec_()
     
     logger.info("=" * 60)
-    logger.info("Application closed")
+    logger.info("应用程序已关闭")
     logger.info("=" * 60)
     
     sys.exit(exit_code)

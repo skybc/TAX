@@ -49,7 +49,7 @@ mkdir -p models/checkpoints
 # ViT-H（推荐，准确率最高）
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -O models/checkpoints/sam_vit_h.pth
 
-# 或 ViT-B（速度快，显存占用小）
+# 或 ViT-B（速度快，显存占用小）  
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth -O models/checkpoints/sam_vit_b.pth
 ```
 

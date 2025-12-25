@@ -1,10 +1,10 @@
 """
-SAM control widget for managing SAM model and settings.
+用于管理 SAM 模型和设置的 SAM 控制小部件。
 
-Provides:
-- Model loading/unloading controls
-- SAM settings configuration
-- Prompt mode selection
+提供：
+- 模型加载/卸载控制
+- SAM 设置配置
+- 提示模式选择
 """
 
 from typing import Optional
@@ -24,13 +24,13 @@ logger = get_logger(__name__)
 
 class SAMControlWidget(QWidget):
     """
-    Widget for SAM model control and configuration.
+    用于 SAM 模型控制和配置的小部件。
     
-    Signals:
-        model_load_requested: Emitted when model load is requested (checkpoint_path)
-        model_unload_requested: Emitted when model unload is requested
-        prompt_mode_changed: Emitted when prompt mode changes (mode)
-        settings_changed: Emitted when settings change (settings_dict)
+    信号:
+        model_load_requested: 请求加载模型时发出 (checkpoint_path)
+        model_unload_requested: 请求卸载模型时发出
+        prompt_mode_changed: 提示模式更改时发出 (mode)
+        settings_changed: 设置更改时发出 (settings_dict)
     """
     
     model_load_requested = pyqtSignal(str)
@@ -40,10 +40,10 @@ class SAMControlWidget(QWidget):
     
     def __init__(self, parent: Optional[QWidget] = None):
         """
-        Initialize SAM control widget.
+        初始化 SAM 控制小部件。
         
-        Args:
-            parent: Parent widget
+        参数:
+            parent: 父小部件
         """
         super().__init__(parent)
         
@@ -52,101 +52,101 @@ class SAMControlWidget(QWidget):
         
         self._init_ui()
         
-        logger.info("SAMControlWidget initialized")
+        logger.info("SAMControlWidget 已初始化")
     
     def _init_ui(self):
-        """Initialize the user interface."""
+        """初始化用户界面。"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Model section
-        model_group = QGroupBox("SAM Model")
+        # 模型部分
+        model_group = QGroupBox("SAM 模型")
         model_layout = QVBoxLayout(model_group)
         
-        # Checkpoint selection
+        # 检查点选择
         checkpoint_layout = QHBoxLayout()
         
         self.checkpoint_edit = QLineEdit()
-        self.checkpoint_edit.setPlaceholderText("Select SAM checkpoint...")
+        self.checkpoint_edit.setPlaceholderText("选择 SAM 检查点...")
         self.checkpoint_edit.setReadOnly(True)
         checkpoint_layout.addWidget(self.checkpoint_edit, 1)
         
-        self.browse_checkpoint_btn = QPushButton("Browse...")
+        self.browse_checkpoint_btn = QPushButton("浏览...")
         self.browse_checkpoint_btn.clicked.connect(self._browse_checkpoint)
         checkpoint_layout.addWidget(self.browse_checkpoint_btn)
         
         model_layout.addLayout(checkpoint_layout)
         
-        # Load/Unload buttons
+        # 加载/卸载按钮
         button_layout = QHBoxLayout()
         
-        self.load_btn = QPushButton("Load Model")
+        self.load_btn = QPushButton("加载模型")
         self.load_btn.clicked.connect(self._load_model)
         self.load_btn.setEnabled(False)
         button_layout.addWidget(self.load_btn)
         
-        self.unload_btn = QPushButton("Unload Model")
+        self.unload_btn = QPushButton("卸载模型")
         self.unload_btn.clicked.connect(self._unload_model)
         self.unload_btn.setEnabled(False)
         button_layout.addWidget(self.unload_btn)
         
         model_layout.addLayout(button_layout)
         
-        # Status
-        self.status_label = QLabel("Status: Not loaded")
+        # 状态
+        self.status_label = QLabel("状态: 未加载")
         self.status_label.setStyleSheet("QLabel { color: #888; }")
         model_layout.addWidget(self.status_label)
         
         layout.addWidget(model_group)
         
-        # Prompt mode section
-        prompt_group = QGroupBox("Prompt Mode")
+        # 提示模式部分
+        prompt_group = QGroupBox("提示模式")
         prompt_layout = QVBoxLayout(prompt_group)
         
         self.prompt_mode_group = QButtonGroup(self)
         
-        self.point_radio = QRadioButton("Point Prompts")
-        self.point_radio.setToolTip("Click to add foreground/background points")
+        self.point_radio = QRadioButton("点提示")
+        self.point_radio.setToolTip("点击以添加前景/背景点")
         self.point_radio.setChecked(True)
         self.point_radio.toggled.connect(lambda: self._on_prompt_mode_changed('points'))
         self.prompt_mode_group.addButton(self.point_radio)
         prompt_layout.addWidget(self.point_radio)
         
-        self.box_radio = QRadioButton("Box Prompt")
-        self.box_radio.setToolTip("Draw a bounding box around object")
+        self.box_radio = QRadioButton("框提示")
+        self.box_radio.setToolTip("在对象周围绘制边界框")
         self.box_radio.toggled.connect(lambda: self._on_prompt_mode_changed('box'))
         self.prompt_mode_group.addButton(self.box_radio)
         prompt_layout.addWidget(self.box_radio)
         
-        self.combined_radio = QRadioButton("Combined (Points + Box)")
-        self.combined_radio.setToolTip("Use both points and box")
+        self.combined_radio = QRadioButton("组合 (点 + 框)")
+        self.combined_radio.setToolTip("同时使用点和框")
         self.combined_radio.toggled.connect(lambda: self._on_prompt_mode_changed('combined'))
         self.prompt_mode_group.addButton(self.combined_radio)
         prompt_layout.addWidget(self.combined_radio)
         
         layout.addWidget(prompt_group)
         
-        # Settings section
-        settings_group = QGroupBox("SAM Settings")
+        # 设置部分
+        settings_group = QGroupBox("SAM 设置")
         settings_layout = QVBoxLayout(settings_group)
         
-        # Multi-mask output
-        self.multimask_check = QCheckBox("Multi-mask output")
+        # 多掩码输出
+        self.multimask_check = QCheckBox("多掩码输出")
         self.multimask_check.setChecked(True)
-        self.multimask_check.setToolTip("Generate multiple mask candidates")
+        self.multimask_check.setToolTip("生成多个候选掩码")
         self.multimask_check.stateChanged.connect(self._on_settings_changed)
         settings_layout.addWidget(self.multimask_check)
         
-        # Post-processing
-        self.post_process_check = QCheckBox("Post-process masks")
+        # 后处理
+        self.post_process_check = QCheckBox("后处理掩码")
         self.post_process_check.setChecked(True)
-        self.post_process_check.setToolTip("Apply morphological operations")
+        self.post_process_check.setToolTip("应用形态学操作")
         self.post_process_check.stateChanged.connect(self._on_settings_changed)
         settings_layout.addWidget(self.post_process_check)
         
-        # Min area for small component removal
+        # 最小面积（用于移除小组件）
         min_area_layout = QHBoxLayout()
-        min_area_layout.addWidget(QLabel("Min component area:"))
+        min_area_layout.addWidget(QLabel("最小组件面积:"))
         
         self.min_area_spin = QSpinBox()
         self.min_area_spin.setMinimum(10)
@@ -161,81 +161,81 @@ class SAMControlWidget(QWidget):
         
         layout.addWidget(settings_group)
         
-        # Actions section
-        actions_group = QGroupBox("Actions")
+        # 操作部分
+        actions_group = QGroupBox("操作")
         actions_layout = QVBoxLayout(actions_group)
         
-        self.run_sam_btn = QPushButton("Run SAM")
+        self.run_sam_btn = QPushButton("运行 SAM")
         self.run_sam_btn.setEnabled(False)
-        self.run_sam_btn.setToolTip("Run SAM with current prompts")
+        self.run_sam_btn.setToolTip("使用当前提示运行 SAM")
         actions_layout.addWidget(self.run_sam_btn)
         
-        self.clear_prompts_btn = QPushButton("Clear Prompts")
+        self.clear_prompts_btn = QPushButton("清除提示")
         self.clear_prompts_btn.setEnabled(False)
         actions_layout.addWidget(self.clear_prompts_btn)
         
-        self.accept_mask_btn = QPushButton("Accept Mask")
+        self.accept_mask_btn = QPushButton("接受掩码")
         self.accept_mask_btn.setEnabled(False)
-        self.accept_mask_btn.setToolTip("Accept and add to annotation")
+        self.accept_mask_btn.setToolTip("接受并添加到标注中")
         actions_layout.addWidget(self.accept_mask_btn)
         
         layout.addWidget(actions_group)
         
-        # Progress bar
+        # 进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         layout.addWidget(self.progress_bar)
         
-        # Info text
+        # 信息文本
         self.info_text = QTextEdit()
         self.info_text.setMaximumHeight(80)
         self.info_text.setReadOnly(True)
-        self.info_text.setPlaceholderText("SAM information and status...")
+        self.info_text.setPlaceholderText("SAM 信息和状态...")
         layout.addWidget(self.info_text)
         
-        # Add stretch
+        # 添加拉伸
         layout.addStretch()
     
     def _browse_checkpoint(self):
-        """Open file dialog to select checkpoint."""
+        """打开文件对话框以选择检查点。"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select SAM Checkpoint",
+            "选择 SAM 检查点",
             "",
-            "PyTorch Models (*.pth *.pt);;All Files (*)"
+            "PyTorch 模型 (*.pth *.pt);;所有文件 (*)"
         )
         
         if file_path:
             self.checkpoint_path = file_path
             self.checkpoint_edit.setText(file_path)
             self.load_btn.setEnabled(True)
-            logger.info(f"Selected checkpoint: {file_path}")
+            logger.info(f"已选择检查点: {file_path}")
     
     def _load_model(self):
-        """Request model loading."""
+        """请求加载模型。"""
         if self.checkpoint_path:
             self.model_load_requested.emit(self.checkpoint_path)
     
     def _unload_model(self):
-        """Request model unloading."""
+        """请求卸载模型。"""
         self.model_unload_requested.emit()
     
     def _on_prompt_mode_changed(self, mode: str):
-        """Handle prompt mode change."""
+        """处理提示模式更改。"""
         self.prompt_mode_changed.emit(mode)
-        logger.info(f"Prompt mode changed to: {mode}")
+        logger.info(f"提示模式已更改为: {mode}")
     
     def _on_settings_changed(self):
-        """Handle settings change."""
+        """处理设置更改。"""
         settings = self.get_settings()
         self.settings_changed.emit(settings)
     
     def set_model_loaded(self, loaded: bool):
         """
-        Update UI for model loaded state.
+        更新模型加载状态的 UI。
         
-        Args:
-            loaded: Whether model is loaded
+        参数:
+            loaded: 模型是否已加载
         """
         self.is_model_loaded = loaded
         
@@ -246,42 +246,42 @@ class SAMControlWidget(QWidget):
         self.clear_prompts_btn.setEnabled(loaded)
         
         if loaded:
-            self.status_label.setText("Status: Loaded ✓")
+            self.status_label.setText("状态: 已加载 ✓")
             self.status_label.setStyleSheet("QLabel { color: green; }")
         else:
-            self.status_label.setText("Status: Not loaded")
+            self.status_label.setText("状态: 未加载")
             self.status_label.setStyleSheet("QLabel { color: #888; }")
     
     def set_accept_enabled(self, enabled: bool):
-        """Enable/disable accept mask button."""
+        """启用/禁用接受掩码按钮。"""
         self.accept_mask_btn.setEnabled(enabled)
     
     def show_progress(self, show: bool):
-        """Show/hide progress bar."""
+        """显示/隐藏进度条。"""
         self.progress_bar.setVisible(show)
     
     def set_progress(self, value: int, message: str = ""):
         """
-        Update progress bar.
+        更新进度条。
         
-        Args:
-            value: Progress value (0-100)
-            message: Progress message
+        参数:
+            value: 进度值 (0-100)
+            message: 进度消息
         """
         self.progress_bar.setValue(value)
         if message:
             self.add_info_message(message)
     
     def add_info_message(self, message: str):
-        """Add a message to info text."""
+        """向信息文本添加消息。"""
         self.info_text.append(message)
     
     def clear_info(self):
-        """Clear info text."""
+        """清除信息文本。"""
         self.info_text.clear()
     
     def get_prompt_mode(self) -> str:
-        """Get current prompt mode."""
+        """获取当前提示模式。"""
         if self.point_radio.isChecked():
             return 'points'
         elif self.box_radio.isChecked():
@@ -291,10 +291,10 @@ class SAMControlWidget(QWidget):
     
     def get_settings(self) -> dict:
         """
-        Get current SAM settings.
+        获取当前 SAM 设置。
         
-        Returns:
-            Dictionary with settings
+        返回:
+            包含设置的字典
         """
         return {
             'multimask_output': self.multimask_check.isChecked(),

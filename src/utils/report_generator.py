@@ -1,11 +1,11 @@
 """
-Report generation utilities.
+报告生成实用程序。
 
-This module provides:
-- Excel report generation
-- PDF report generation  
-- HTML report generation
-- Report templates
+此模块提供：
+- Excel 报告生成
+- PDF 报告生成
+- HTML 报告生成
+- 报告模板
 """
 
 import numpy as np
@@ -21,13 +21,13 @@ logger = get_logger(__name__)
 
 class ExcelReportGenerator:
     """
-    Generate Excel reports with statistics and charts.
+    生成带有统计数据和图表的 Excel 报告。
     
-    Uses openpyxl for Excel file generation.
+    使用 openpyxl 进行 Excel 文件生成。
     """
     
     def __init__(self):
-        """Initialize ExcelReportGenerator."""
+        """初始化 ExcelReportGenerator。"""
         try:
             import openpyxl
             from openpyxl.styles import Font, Alignment, PatternFill
@@ -43,62 +43,62 @@ class ExcelReportGenerator:
             self.Reference = Reference
             
         except ImportError:
-            logger.error("openpyxl not installed. Install with: pip install openpyxl")
+            logger.error("未安装 openpyxl。请通过以下命令安装: pip install openpyxl")
             raise
     
     def generate_defect_report(self, statistics: Dict, output_path: str):
         """
-        Generate defect analysis Excel report.
+        生成缺陷分析 Excel 报告。
         
-        Args:
-            statistics: Statistics dictionary from compute_batch_statistics
-            output_path: Output Excel file path
+        参数:
+            statistics: 来自 compute_batch_statistics 的统计字典
+            output_path: 输出 Excel 文件路径
         """
-        logger.info(f"Generating Excel report: {output_path}")
+        logger.info(f"正在生成 Excel 报告: {output_path}")
         
-        # Create workbook
+        # 创建工作簿
         wb = self.openpyxl.Workbook()
         
-        # Remove default sheet
+        # 移除默认工作表
         wb.remove(wb.active)
         
-        # 1. Summary sheet
+        # 1. 摘要工作表
         self._create_summary_sheet(wb, statistics)
         
-        # 2. Per-image statistics sheet
+        # 2. 每张图像统计工作表
         self._create_per_image_sheet(wb, statistics)
         
-        # 3. Size distribution sheet
+        # 3. 尺寸分布工作表
         self._create_size_distribution_sheet(wb, statistics)
         
-        # Save workbook
+        # 保存工作簿
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         wb.save(output_path)
         
-        logger.info(f"Excel report saved to: {output_path}")
+        logger.info(f"Excel 报告已保存到: {output_path}")
     
     def _create_summary_sheet(self, wb, statistics: Dict):
-        """Create summary statistics sheet."""
-        ws = wb.create_sheet("Summary")
+        """创建摘要统计工作表。"""
+        ws = wb.create_sheet("摘要")
         
-        # Title
-        ws['A1'] = "Defect Analysis Summary"
+        # 标题
+        ws['A1'] = "缺陷分析摘要"
         ws['A1'].font = self.Font(size=16, bold=True)
         ws.merge_cells('A1:B1')
         
-        # Date
-        ws['A2'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        # 日期
+        ws['A2'] = f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         ws.merge_cells('A2:B2')
         
-        # Statistics
+        # 统计数据
         row = 4
         header_fill = self.PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = self.Font(color="FFFFFF", bold=True)
         
-        # Header
-        ws[f'A{row}'] = "Metric"
-        ws[f'B{row}'] = "Value"
+        # 表头
+        ws[f'A{row}'] = "指标"
+        ws[f'B{row}'] = "数值"
         ws[f'A{row}'].fill = header_fill
         ws[f'B{row}'].fill = header_fill
         ws[f'A{row}'].font = header_font
@@ -106,16 +106,16 @@ class ExcelReportGenerator:
         
         row += 1
         
-        # Data
+        # 数据
         metrics = [
-            ("Total Images", statistics.get('total_images', 0)),
-            ("Images Processed", statistics.get('images_processed', 0)),
-            ("Images with Defects", statistics.get('images_with_defects', 0)),
-            ("Images without Defects", statistics.get('images_without_defects', 0)),
-            ("Total Defects", statistics.get('total_defects', 0)),
-            ("Mean Defects per Image", f"{statistics.get('mean_defects_per_image', 0):.2f}"),
-            ("Mean Coverage Ratio", f"{statistics.get('mean_coverage_ratio', 0):.4f}"),
-            ("Std Coverage Ratio", f"{statistics.get('std_coverage_ratio', 0):.4f}"),
+            ("总图像数", statistics.get('total_images', 0)),
+            ("已处理图像数", statistics.get('images_processed', 0)),
+            ("有缺陷图像数", statistics.get('images_with_defects', 0)),
+            ("无缺陷图像数", statistics.get('images_without_defects', 0)),
+            ("总缺陷数", statistics.get('total_defects', 0)),
+            ("平均每图缺陷数", f"{statistics.get('mean_defects_per_image', 0):.2f}"),
+            ("平均覆盖率", f"{statistics.get('mean_coverage_ratio', 0):.4f}"),
+            ("覆盖率标准差", f"{statistics.get('std_coverage_ratio', 0):.4f}"),
         ]
         
         for metric, value in metrics:
@@ -123,17 +123,17 @@ class ExcelReportGenerator:
             ws[f'B{row}'] = value
             row += 1
         
-        # Adjust column widths
+        # 调整列宽
         ws.column_dimensions['A'].width = 30
         ws.column_dimensions['B'].width = 20
     
     def _create_per_image_sheet(self, wb, statistics: Dict):
-        """Create per-image statistics sheet."""
-        ws = wb.create_sheet("Per-Image Stats")
+        """创建每张图像统计工作表。"""
+        ws = wb.create_sheet("单图统计")
         
-        # Header
-        headers = ["Image Name", "Num Defects", "Total Area", "Coverage Ratio", 
-                  "Largest Defect", "Mean Defect Size"]
+        # 表头
+        headers = ["图像名称", "缺陷数量", "总面积", "覆盖率", 
+                  "最大缺陷", "平均缺陷大小"]
         
         header_fill = self.PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = self.Font(color="FFFFFF", bold=True)
@@ -144,7 +144,7 @@ class ExcelReportGenerator:
             cell.font = header_font
             cell.alignment = self.Alignment(horizontal='center')
         
-        # Data
+        # 数据
         per_image_stats = statistics.get('per_image_stats', [])
         
         for row, stats in enumerate(per_image_stats, start=2):
@@ -155,17 +155,17 @@ class ExcelReportGenerator:
             ws.cell(row=row, column=5, value=stats.get('largest_defect', 0))
             ws.cell(row=row, column=6, value=f"{stats.get('mean_defect_size', 0):.2f}")
         
-        # Adjust column widths
+        # 调整列宽
         for col in range(1, 7):
             ws.column_dimensions[chr(64 + col)].width = 18
     
     def _create_size_distribution_sheet(self, wb, statistics: Dict):
-        """Create defect size distribution sheet."""
-        ws = wb.create_sheet("Size Distribution")
+        """创建缺陷尺寸分布工作表。"""
+        ws = wb.create_sheet("尺寸分布")
         
-        # Header
-        ws['A1'] = "Bin Range"
-        ws['B1'] = "Frequency"
+        # 表头
+        ws['A1'] = "分箱范围"
+        ws['B1'] = "频率"
         
         header_fill = self.PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = self.Font(color="FFFFFF", bold=True)
@@ -174,7 +174,7 @@ class ExcelReportGenerator:
         ws['A1'].font = header_font
         ws['B1'].font = header_font
         
-        # Data
+        # 数据
         size_dist = statistics.get('defect_size_distribution', {})
         histogram = size_dist.get('histogram', [])
         bin_edges = size_dist.get('bin_edges', [])
@@ -184,12 +184,12 @@ class ExcelReportGenerator:
             ws[f'A{i}'] = f"{bin_start:.0f} - {bin_end:.0f}"
             ws[f'B{i}'] = freq
         
-        # Add chart
+        # 添加图表
         if histogram:
             chart = self.BarChart()
-            chart.title = "Defect Size Distribution"
-            chart.x_axis.title = "Size Range (pixels)"
-            chart.y_axis.title = "Frequency"
+            chart.title = "缺陷尺寸分布"
+            chart.x_axis.title = "尺寸范围 (像素)"
+            chart.y_axis.title = "频率"
             
             data = self.Reference(ws, min_col=2, min_row=1, max_row=len(histogram) + 1)
             cats = self.Reference(ws, min_col=1, min_row=2, max_row=len(histogram) + 1)
@@ -199,27 +199,27 @@ class ExcelReportGenerator:
             
             ws.add_chart(chart, "D2")
         
-        # Adjust column widths
+        # 调整列宽
         ws.column_dimensions['A'].width = 20
         ws.column_dimensions['B'].width = 15
     
     def generate_training_report(self, history: Dict, output_path: str):
         """
-        Generate training history Excel report.
+        生成训练历史 Excel 报告。
         
-        Args:
-            history: Training history dictionary
-            output_path: Output Excel file path
+        参数:
+            history: 训练历史字典
+            output_path: 输出 Excel 文件路径
         """
-        logger.info(f"Generating training report: {output_path}")
+        logger.info(f"正在生成训练报告: {output_path}")
         
         wb = self.openpyxl.Workbook()
         wb.remove(wb.active)
         
-        # Create metrics sheet
-        ws = wb.create_sheet("Training History")
+        # 创建指标工作表
+        ws = wb.create_sheet("训练历史")
         
-        # Headers
+        # 表头
         headers = ["Epoch"] + list(history.keys())
         header_fill = self.PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = self.Font(color="FFFFFF", bold=True)
@@ -229,7 +229,7 @@ class ExcelReportGenerator:
             cell.fill = header_fill
             cell.font = header_font
         
-        # Data
+        # 数据
         num_epochs = len(history[list(history.keys())[0]])
         
         for epoch in range(num_epochs):
@@ -239,12 +239,12 @@ class ExcelReportGenerator:
                 value = history[metric][epoch]
                 ws.cell(row=epoch + 2, column=col, value=value)
         
-        # Add loss chart
+        # 添加损失图表
         if 'train_loss' in history:
             chart = self.LineChart()
-            chart.title = "Loss Curves"
+            chart.title = "损失曲线"
             chart.x_axis.title = "Epoch"
-            chart.y_axis.title = "Loss"
+            chart.y_axis.title = "损失"
             
             train_loss_data = self.Reference(ws, min_col=2, min_row=1, max_row=num_epochs + 1)
             chart.add_data(train_loss_data, titles_from_data=True)
@@ -259,79 +259,79 @@ class ExcelReportGenerator:
             
             ws.add_chart(chart, f"A{num_epochs + 5}")
         
-        # Save
+        # 保存
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         wb.save(output_path)
         
-        logger.info(f"Training report saved to: {output_path}")
+        logger.info(f"训练报告已保存到: {output_path}")
 
 
 class PDFReportGenerator:
     """
-    Generate PDF reports with matplotlib figures.
+    生成带有 matplotlib 图形的 PDF 报告。
     
-    Uses matplotlib to save figures to PDF.
+    使用 matplotlib 将图形保存到 PDF。
     """
     
     def __init__(self):
-        """Initialize PDFReportGenerator."""
+        """初始化 PDFReportGenerator。"""
         try:
             from matplotlib.backends.backend_pdf import PdfPages
             self.PdfPages = PdfPages
         except ImportError:
-            logger.error("matplotlib not installed properly")
+            logger.error("matplotlib 未正确安装")
             raise
     
     def generate_defect_report(self, statistics: Dict, figures: List,
                               output_path: str):
         """
-        Generate defect analysis PDF report.
+        生成缺陷分析 PDF 报告。
         
-        Args:
-            statistics: Statistics dictionary
-            figures: List of matplotlib figures
-            output_path: Output PDF file path
+        参数:
+            statistics: 统计字典
+            figures: matplotlib 图形列表
+            output_path: 输出 PDF 文件路径
         """
-        logger.info(f"Generating PDF report: {output_path}")
+        logger.info(f"正在生成 PDF 报告: {output_path}")
         
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with self.PdfPages(output_path) as pdf:
-            # Add title page
+            # 添加标题页
             self._add_title_page(pdf, statistics)
             
-            # Add all figures
+            # 添加所有图形
             for fig in figures:
                 pdf.savefig(fig, bbox_inches='tight')
             
-            # Add metadata
+            # 添加元数据
             d = pdf.infodict()
-            d['Title'] = 'Defect Analysis Report'
-            d['Author'] = 'Industrial Defect Segmentation System'
-            d['Subject'] = 'Defect Statistics and Visualization'
+            d['Title'] = '缺陷分析报告'
+            d['Author'] = '工业缺陷分割系统'
+            d['Subject'] = '缺陷统计与可视化'
             d['CreationDate'] = datetime.now()
         
-        logger.info(f"PDF report saved to: {output_path}")
+        logger.info(f"PDF 报告已保存到: {output_path}")
     
     def _add_title_page(self, pdf, statistics: Dict):
-        """Add title page to PDF."""
+        """向 PDF 添加标题页。"""
         import matplotlib.pyplot as plt
         
         fig = plt.figure(figsize=(8.5, 11))
-        fig.text(0.5, 0.7, 'Defect Analysis Report', 
+        fig.text(0.5, 0.7, '缺陷分析报告', 
                 ha='center', fontsize=24, fontweight='bold')
-        fig.text(0.5, 0.6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        fig.text(0.5, 0.6, f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 ha='center', fontsize=12)
         
-        # Add summary statistics
+        # 添加摘要统计
         summary_text = f"""
-        Total Images: {statistics.get('total_images', 0)}
-        Images with Defects: {statistics.get('images_with_defects', 0)}
-        Total Defects: {statistics.get('total_defects', 0)}
-        Mean Defects per Image: {statistics.get('mean_defects_per_image', 0):.2f}
-        Mean Coverage Ratio: {statistics.get('mean_coverage_ratio', 0):.4f}
+        总图像数: {statistics.get('total_images', 0)}
+        有缺陷图像数: {statistics.get('images_with_defects', 0)}
+        总缺陷数: {statistics.get('total_defects', 0)}
+        平均每图缺陷数: {statistics.get('mean_defects_per_image', 0):.2f}
+        平均覆盖率: {statistics.get('mean_coverage_ratio', 0):.4f}
         """
         
         fig.text(0.5, 0.4, summary_text, ha='center', fontsize=11,
@@ -344,26 +344,26 @@ class PDFReportGenerator:
 
 class HTMLReportGenerator:
     """
-    Generate HTML reports with embedded charts.
+    生成带有嵌入图表的 HTML 报告。
     
-    Creates standalone HTML files with statistics and visualizations.
+    创建包含统计数据和可视化的独立 HTML 文件。
     """
     
     def __init__(self):
-        """Initialize HTMLReportGenerator."""
+        """初始化 HTMLReportGenerator。"""
         pass
     
     def generate_defect_report(self, statistics: Dict, chart_paths: Dict[str, str],
                               output_path: str):
         """
-        Generate defect analysis HTML report.
+        生成缺陷分析 HTML 报告。
         
-        Args:
-            statistics: Statistics dictionary
-            chart_paths: Dictionary mapping chart names to file paths
-            output_path: Output HTML file path
+        参数:
+            statistics: 统计字典
+            chart_paths: 将图表名称映射到文件路径的字典
+            output_path: 输出 HTML 文件路径
         """
-        logger.info(f"Generating HTML report: {output_path}")
+        logger.info(f"正在生成 HTML 报告: {output_path}")
         
         html_content = self._create_html_template(statistics, chart_paths)
         
@@ -373,109 +373,109 @@ class HTMLReportGenerator:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        logger.info(f"HTML report saved to: {output_path}")
+        logger.info(f"HTML 报告已保存到: {output_path}")
     
     def _create_html_template(self, statistics: Dict, chart_paths: Dict[str, str]) -> str:
-        """Create HTML report template."""
+        """创建 HTML 报告模板。"""
         
-        # Header
+        # 页眉
         html = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Defect Analysis Report</title>
+    <title>缺陷分析报告</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        body {{
+            font-family: "Microsoft YaHei", Arial, sans-serif;
             margin: 20px;
             background-color: #f5f5f5;
-        }
-        .container {
+        }}
+        .container {{
             max-width: 1200px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
+        }}
+        h1 {{
             color: #2c3e50;
             border-bottom: 3px solid #3498db;
             padding-bottom: 10px;
-        }
-        h2 {
+        }}
+        h2 {{
             color: #34495e;
             margin-top: 30px;
-        }
-        .stats-grid {
+        }}
+        .stats-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin: 20px 0;
-        }
-        .stat-card {
+        }}
+        .stat-card {{
             background-color: #ecf0f1;
             padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #3498db;
-        }
-        .stat-label {
+        }}
+        .stat-label {{
             font-size: 14px;
             color: #7f8c8d;
             margin-bottom: 5px;
-        }
-        .stat-value {
+        }}
+        .stat-value {{
             font-size: 28px;
             font-weight: bold;
             color: #2c3e50;
-        }
-        .chart-container {
+        }}
+        .chart-container {{
             margin: 30px 0;
             text-align: center;
-        }
-        .chart-container img {
+        }}
+        .chart-container img {{
             max-width: 100%;
             height: auto;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .footer {
+        }}
+        .footer {{
             margin-top: 40px;
             padding-top: 20px;
             border-top: 1px solid #bdc3c7;
             text-align: center;
             color: #7f8c8d;
             font-size: 12px;
-        }
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Defect Analysis Report</h1>
-        <p><strong>Generated:</strong> {timestamp}</p>
+        <h1>🔍 缺陷分析报告</h1>
+        <p><strong>生成时间:</strong> {timestamp}</p>
         
-        <h2>📊 Summary Statistics</h2>
+        <h2>📊 摘要统计</h2>
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total Images</div>
+                <div class="stat-label">总图像数</div>
                 <div class="stat-value">{total_images}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Images with Defects</div>
+                <div class="stat-label">有缺陷图像数</div>
                 <div class="stat-value">{images_with_defects}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Total Defects</div>
+                <div class="stat-label">总缺陷数</div>
                 <div class="stat-value">{total_defects}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Mean Defects/Image</div>
+                <div class="stat-label">平均每图缺陷数</div>
                 <div class="stat-value">{mean_defects:.2f}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Mean Coverage Ratio</div>
+                <div class="stat-label">平均覆盖率</div>
                 <div class="stat-value">{mean_coverage:.4f}</div>
             </div>
         </div>
@@ -488,11 +488,11 @@ class HTMLReportGenerator:
             mean_coverage=statistics.get('mean_coverage_ratio', 0)
         )
         
-        # Add charts
-        html += "\n        <h2>📈 Visualizations</h2>\n"
+        # 添加图表
+        html += "\n        <h2>📈 可视化</h2>\n"
         
         for chart_name, chart_path in chart_paths.items():
-            # Use relative path
+            # 使用相对路径
             rel_path = Path(chart_path).name
             html += f"""
         <div class="chart-container">
@@ -501,10 +501,10 @@ class HTMLReportGenerator:
         </div>
 """
         
-        # Footer
+        # 页脚
         html += """
         <div class="footer">
-            <p>Generated by Industrial Defect Segmentation System</p>
+            <p>由工业缺陷分割系统生成</p>
         </div>
     </div>
 </body>
@@ -516,13 +516,13 @@ class HTMLReportGenerator:
 
 class ReportManager:
     """
-    Manage report generation workflow.
+    管理报告生成工作流程。
     
-    Coordinates statistics computation, visualization, and report generation.
+    协调统计计算、可视化和报告生成。
     """
     
     def __init__(self):
-        """Initialize ReportManager."""
+        """初始化 ReportManager。"""
         self.excel_generator = None
         self.pdf_generator = None
         self.html_generator = HTMLReportGenerator()
@@ -531,40 +531,40 @@ class ReportManager:
                                 output_dir: str,
                                 report_formats: List[str] = ['excel', 'pdf', 'html']):
         """
-        Generate complete report in multiple formats.
+        以多种格式生成完整报告。
         
-        Args:
-            mask_paths: List of mask file paths
-            output_dir: Output directory for reports
-            report_formats: List of formats to generate ('excel', 'pdf', 'html')
+        参数:
+            mask_paths: 掩码文件路径列表
+            output_dir: 报告输出目录
+            report_formats: 要生成的格式列表 ('excel', 'pdf', 'html')
         """
         from src.utils.statistics import DefectStatistics
         from src.utils.visualization import DefectVisualizer
         
-        logger.info("Starting complete report generation...")
+        logger.info("正在开始生成完整报告...")
         
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # 1. Compute statistics
-        logger.info("Computing statistics...")
+        # 1. 计算统计数据
+        logger.info("正在计算统计数据...")
         defect_stats = DefectStatistics()
         statistics = defect_stats.compute_batch_statistics(mask_paths)
         
-        # Save statistics JSON
+        # 保存统计数据 JSON
         stats_path = output_dir / 'statistics.json'
         with open(stats_path, 'w') as f:
             json.dump(statistics, f, indent=2)
-        logger.info(f"Statistics saved to: {stats_path}")
+        logger.info(f"统计数据已保存到: {stats_path}")
         
-        # 2. Generate visualizations
-        logger.info("Generating visualizations...")
+        # 2. 生成可视化
+        logger.info("正在生成可视化...")
         visualizer = DefectVisualizer()
         
         figures = {}
         chart_paths = {}
         
-        # Defect size distribution
+        # 缺陷尺寸分布
         all_defect_areas = []
         for img_stats in statistics.get('per_image_stats', []):
             all_defect_areas.extend(img_stats.get('defect_areas', []))
@@ -577,7 +577,7 @@ class ReportManager:
             figures['size_distribution'] = fig1
             chart_paths['size_distribution'] = str(output_dir / 'defect_size_distribution.png')
         
-        # Defect count per image
+        # 每张图像的缺陷计数
         defect_counts = [stats['num_defects'] for stats in statistics.get('per_image_stats', [])]
         if defect_counts:
             fig2 = visualizer.plot_defect_count_per_image(
@@ -587,7 +587,7 @@ class ReportManager:
             figures['defect_counts'] = fig2
             chart_paths['defect_counts'] = str(output_dir / 'defect_count_per_image.png')
         
-        # Coverage ratio distribution
+        # 覆盖率分布
         coverage_ratios = [stats['coverage_ratio'] for stats in statistics.get('per_image_stats', [])
                           if stats['coverage_ratio'] > 0]
         if coverage_ratios:
@@ -598,7 +598,7 @@ class ReportManager:
             figures['coverage_ratio'] = fig3
             chart_paths['coverage_ratio'] = str(output_dir / 'coverage_ratio_distribution.png')
         
-        # 3. Generate reports
+        # 3. 生成报告
         report_paths = {}
         
         if 'excel' in report_formats:
@@ -610,7 +610,7 @@ class ReportManager:
                 self.excel_generator.generate_defect_report(statistics, str(excel_path))
                 report_paths['excel'] = str(excel_path)
             except Exception as e:
-                logger.error(f"Failed to generate Excel report: {e}")
+                logger.error(f"生成 Excel 报告失败: {e}")
         
         if 'pdf' in report_formats:
             try:
@@ -625,7 +625,7 @@ class ReportManager:
                 )
                 report_paths['pdf'] = str(pdf_path)
             except Exception as e:
-                logger.error(f"Failed to generate PDF report: {e}")
+                logger.error(f"生成 PDF 报告失败: {e}")
         
         if 'html' in report_formats:
             try:
@@ -637,10 +637,10 @@ class ReportManager:
                 )
                 report_paths['html'] = str(html_path)
             except Exception as e:
-                logger.error(f"Failed to generate HTML report: {e}")
+                logger.error(f"生成 HTML 报告失败: {e}")
         
-        logger.info("Report generation complete!")
-        logger.info(f"Reports saved to: {output_dir}")
+        logger.info("报告生成完成！")
+        logger.info(f"报告已保存到: {output_dir}")
         
         return {
             'statistics': statistics,

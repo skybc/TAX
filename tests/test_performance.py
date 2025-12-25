@@ -1,11 +1,11 @@
 """
-Performance benchmarks and tests.
+性能基准测试。
 
-Tests:
-- Data loading speed
-- Model inference speed
-- Statistics computation speed
-- Report generation speed
+测试内容：
+- 数据加载速度
+- 模型推理速度
+- 统计计算速度
+- 报告生成速度
 """
 
 import pytest
@@ -20,59 +20,59 @@ from src.models.segmentation_models import SegmentationModel
 
 
 class TestDataLoadingPerformance:
-    """Performance tests for data loading."""
+    """数据加载性能测试。"""
     
     @pytest.mark.performance
     @pytest.mark.slow
     def test_image_loading_speed(self, create_test_images, temp_dir, benchmark):
-        """Benchmark image loading speed."""
+        """基准测试图像加载速度。"""
         image_paths = create_test_images(count=100)
         dm = DataManager(str(temp_dir))
         
         def load_images():
-            for image_path in image_paths[:10]:  # Load 10 images
+            for image_path in image_paths[:10]:  # 加载 10 张图像
                 dm.load_image(image_path)
         
-        # Run benchmark
+        # 运行基准测试
         if hasattr(benchmark, '__call__'):
             result = benchmark(load_images)
         else:
-            # Fallback if pytest-benchmark not installed
+            # 如果未安装 pytest-benchmark，则使用备选方案
             start = time.time()
             load_images()
             duration = time.time() - start
-            print(f"Loaded 10 images in {duration:.3f}s ({duration/10:.3f}s per image)")
+            print(f"在 {duration:.3f}s 内加载了 10 张图像（每张图像 {duration/10:.3f}s）")
     
     @pytest.mark.performance
     def test_image_loading_with_cache(self, create_test_images, temp_dir):
-        """Test image loading with cache."""
+        """测试带缓存的图像加载。"""
         image_paths = create_test_images(count=10)
         dm = DataManager(str(temp_dir), cache_size_mb=100)
         
-        # First load (cold cache)
+        # 第一次加载（冷缓存）
         start = time.time()
         for image_path in image_paths:
             dm.load_image(image_path)
         cold_time = time.time() - start
         
-        # Second load (warm cache)
+        # 第二次加载（热缓存）
         start = time.time()
         for image_path in image_paths:
             dm.load_image(image_path)
         warm_time = time.time() - start
         
-        print(f"Cold cache: {cold_time:.3f}s, Warm cache: {warm_time:.3f}s")
-        # Warm cache should be faster
+        print(f"冷缓存: {cold_time:.3f}s, 热缓存: {warm_time:.3f}s")
+        # 热缓存应该更快
         assert warm_time < cold_time
 
 
 class TestStatisticsPerformance:
-    """Performance tests for statistics computation."""
+    """统计计算性能测试。"""
     
     @pytest.mark.performance
     @pytest.mark.slow
     def test_batch_statistics_speed(self, create_test_masks):
-        """Benchmark batch statistics computation."""
+        """基准测试批量统计计算速度。"""
         mask_paths = create_test_masks(count=100)
         stats_calculator = DefectStatistics()
         
@@ -81,44 +81,44 @@ class TestStatisticsPerformance:
         duration = time.time() - start
         
         assert statistics is not None
-        print(f"Computed statistics for 100 masks in {duration:.3f}s ({duration/100*1000:.1f}ms per mask)")
+        print(f"在 {duration:.3f}s 内计算了 100 个掩码的统计信息（每个掩码 {duration/100*1000:.1f}ms）")
         
-        # Should process reasonable speed (< 1s per mask)
+        # 应该以合理的速度处理（每个掩码 < 1s）
         assert duration < 100
     
     @pytest.mark.performance
     def test_single_mask_statistics_speed(self, sample_mask_with_multiple_defects):
-        """Benchmark single mask statistics."""
+        """基准测试单个掩码统计。"""
         stats_calculator = DefectStatistics()
         
-        # Warm up
+        # 预热
         stats_calculator.compute_mask_statistics(sample_mask_with_multiple_defects)
         
-        # Benchmark
+        # 基准测试
         start = time.time()
         for _ in range(100):
             stats_calculator.compute_mask_statistics(sample_mask_with_multiple_defects)
         duration = time.time() - start
         
-        print(f"Single mask statistics: {duration/100*1000:.1f}ms per mask")
-        # Should be very fast (< 50ms per mask)
+        print(f"单个掩码统计：每个掩码 {duration/100*1000:.1f}ms")
+        # 应该非常快（每个掩码 < 50ms）
         assert duration < 5.0
 
 
 class TestVisualizationPerformance:
-    """Performance tests for visualization."""
+    """可视化性能测试。"""
     
     @pytest.mark.performance
     def test_chart_generation_speed(self, mock_statistics):
-        """Benchmark chart generation."""
+        """基准测试图表生成。"""
         visualizer = DefectVisualizer()
         
-        # Extract data
+        # 提取数据
         all_areas = []
         for img_stats in mock_statistics['per_image_stats']:
             all_areas.append(img_stats['total_area'])
         
-        # Benchmark
+        # 基准测试
         start = time.time()
         fig = visualizer.plot_defect_size_distribution(all_areas)
         duration = time.time() - start
@@ -126,14 +126,14 @@ class TestVisualizationPerformance:
         import matplotlib.pyplot as plt
         plt.close(fig)
         
-        print(f"Chart generation: {duration*1000:.1f}ms")
-        # Should be fast (< 2s)
+        print(f"图表生成：{duration*1000:.1f}ms")
+        # 应该很快 (< 2s)
         assert duration < 2.0
     
     @pytest.mark.performance
     @pytest.mark.slow
     def test_multiple_charts_generation(self, mock_statistics):
-        """Benchmark generating multiple charts."""
+        """基准测试生成多个图表。"""
         visualizer = DefectVisualizer()
         
         all_areas = []
@@ -158,16 +158,16 @@ class TestVisualizationPerformance:
         plt.close(fig2)
         plt.close(fig3)
         
-        print(f"Generated 3 charts in {duration:.3f}s ({duration/3:.3f}s per chart)")
+        print(f"在 {duration:.3f}s 内生成了 3 个图表（每个图表 {duration/3:.3f}s）")
         assert duration < 10.0
 
 
 class TestModelInferencePerformance:
-    """Performance tests for model inference."""
+    """模型推理性能测试。"""
     
     @pytest.mark.performance
     def test_single_image_inference_cpu(self):
-        """Benchmark single image inference on CPU."""
+        """基准测试 CPU 上的单张图像推理。"""
         import torch
         
         model = SegmentationModel(
@@ -181,29 +181,29 @@ class TestModelInferencePerformance:
         
         x = torch.randn(1, 3, 256, 256)
         
-        # Warm up
+        # 预热
         with torch.no_grad():
             _ = model(x)
         
-        # Benchmark
+        # 基准测试
         start = time.time()
         with torch.no_grad():
             for _ in range(10):
                 _ = model(x)
         duration = time.time() - start
         
-        print(f"CPU inference: {duration/10*1000:.1f}ms per image (256x256)")
-        # Should complete (no strict time limit due to CPU variance)
-        assert duration < 30.0  # 10 images in < 30s
+        print(f"CPU 推理：每张图像 {duration/10*1000:.1f}ms (256x256)")
+        # 应该完成（由于 CPU 差异，没有严格的时间限制）
+        assert duration < 30.0  # 10 张图像在 30s 内
     
     @pytest.mark.performance
     @pytest.mark.requires_gpu
     def test_single_image_inference_gpu(self):
-        """Benchmark single image inference on GPU."""
+        """基准测试 GPU 上的单张图像推理。"""
         import torch
         
         if not torch.cuda.is_available():
-            pytest.skip("CUDA not available")
+            pytest.skip("CUDA 不可用")
         
         model = SegmentationModel(
             architecture='unet',
@@ -216,12 +216,12 @@ class TestModelInferencePerformance:
         
         x = torch.randn(1, 3, 256, 256).cuda()
         
-        # Warm up
+        # 预热
         with torch.no_grad():
             _ = model(x)
         torch.cuda.synchronize()
         
-        # Benchmark
+        # 基准测试
         start = time.time()
         with torch.no_grad():
             for _ in range(100):
@@ -229,14 +229,14 @@ class TestModelInferencePerformance:
         torch.cuda.synchronize()
         duration = time.time() - start
         
-        print(f"GPU inference: {duration/100*1000:.1f}ms per image (256x256)")
-        # GPU should be much faster
-        assert duration < 5.0  # 100 images in < 5s
+        print(f"GPU 推理：每张图像 {duration/100*1000:.1f}ms (256x256)")
+        # GPU 应该快得多
+        assert duration < 5.0  # 100 张图像在 5s 内
     
     @pytest.mark.performance
     @pytest.mark.slow
     def test_batch_inference_throughput(self):
-        """Benchmark batch inference throughput."""
+        """基准测试批量推理吞吐量。"""
         import torch
         
         model = SegmentationModel(
@@ -255,14 +255,14 @@ class TestModelInferencePerformance:
         for batch_size in batch_sizes:
             x = torch.randn(batch_size, 3, 256, 256).to(device)
             
-            # Warm up
+            # 预热
             with torch.no_grad():
                 _ = model(x)
             
             if device == 'cuda':
                 torch.cuda.synchronize()
             
-            # Benchmark
+            # 基准测试
             start = time.time()
             with torch.no_grad():
                 for _ in range(20):
@@ -274,16 +274,16 @@ class TestModelInferencePerformance:
             duration = time.time() - start
             throughput = (20 * batch_size) / duration
             
-            print(f"Batch size {batch_size}: {throughput:.1f} images/sec on {device}")
+            print(f"Batch size {batch_size}: 在 {device} 上为 {throughput:.1f} images/sec")
 
 
 class TestReportGenerationPerformance:
-    """Performance tests for report generation."""
+    """报告生成性能测试。"""
     
     @pytest.mark.performance
     @pytest.mark.slow
     def test_html_report_generation_speed(self, create_test_masks, temp_output_dir):
-        """Benchmark HTML report generation."""
+        """基准测试 HTML 报告生成。"""
         mask_paths = create_test_masks(count=50)
         
         from src.utils.report_generator import ReportManager
@@ -301,41 +301,41 @@ class TestReportGenerationPerformance:
         duration = time.time() - start
         
         assert result is not None
-        print(f"HTML report generation for 50 masks: {duration:.3f}s")
-        # Should be reasonably fast (< 30s for 50 images)
+        print(f"50 个掩码的 HTML 报告生成：{duration:.3f}s")
+        # 应该相当快（50 张图像 < 30s）
         assert duration < 30.0
 
 
 class TestMemoryUsage:
-    """Memory usage tests."""
+    """内存使用测试。"""
     
     @pytest.mark.performance
     def test_image_cache_memory_limit(self, create_test_images, temp_dir):
-        """Test that image cache respects memory limit."""
+        """测试图像缓存是否遵守内存限制。"""
         image_paths = create_test_images(count=100)
         
-        # Create DataManager with small cache
+        # 创建具有小缓存的 DataManager
         dm = DataManager(str(temp_dir), cache_size_mb=10)
         
-        # Load many images
+        # 加载多张图像
         for image_path in image_paths:
             dm.load_image(image_path)
         
-        # Check cache size
+        # 检查缓存大小
         cache_size_mb = dm.get_cache_size()
-        print(f"Cache size after loading 100 images: {cache_size_mb:.1f}MB")
+        print(f"加载 100 张图像后的缓存大小：{cache_size_mb:.1f}MB")
         
-        # Should not exceed limit significantly (allow some overhead)
-        assert cache_size_mb < 15  # 10MB limit + 5MB overhead
+        # 不应显著超过限制（允许一些开销）
+        assert cache_size_mb < 15  # 10MB 限制 + 5MB 开销
     
     @pytest.mark.performance
     @pytest.mark.requires_gpu
     def test_gpu_memory_usage(self):
-        """Test GPU memory usage during inference."""
+        """测试推理期间的 GPU 内存使用情况。"""
         import torch
         
         if not torch.cuda.is_available():
-            pytest.skip("CUDA not available")
+            pytest.skip("CUDA 不可用")
         
         torch.cuda.empty_cache()
         initial_memory = torch.cuda.memory_allocated()
@@ -357,9 +357,9 @@ class TestMemoryUsage:
         peak_memory = torch.cuda.max_memory_allocated()
         memory_used_mb = (peak_memory - initial_memory) / 1024 / 1024
         
-        print(f"GPU memory used: {memory_used_mb:.1f}MB")
+        print(f"使用的 GPU 内存：{memory_used_mb:.1f}MB")
         
-        # Should fit in reasonable GPU memory (< 2GB)
+        # 应该适合合理的 GPU 内存 (< 2GB)
         assert memory_used_mb < 2048
 
 

@@ -1,11 +1,11 @@
 """
-Dataset validator for checking annotation format correctness.
+用于检查标注格式正确性的数据集验证器。
 
-This module provides:
-- COCO format validation
-- YOLO format validation
-- VOC format validation
-- Annotation integrity checks
+此模块提供：
+- COCO 格式验证
+- YOLO 格式验证
+- VOC 格式验证
+- 标注完整性检查
 """
 
 import json
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 class ValidationResult:
-    """Container for validation results."""
+    """验证结果的容器。"""
     
     def __init__(self):
         self.is_valid = True
@@ -29,48 +29,48 @@ class ValidationResult:
         self.stats = {}
     
     def add_error(self, message: str):
-        """Add an error message."""
+        """添加错误消息。"""
         self.errors.append(message)
         self.is_valid = False
-        logger.error(f"Validation error: {message}")
+        logger.error(f"验证错误: {message}")
     
     def add_warning(self, message: str):
-        """Add a warning message."""
+        """添加警告消息。"""
         self.warnings.append(message)
-        logger.warning(f"Validation warning: {message}")
+        logger.warning(f"验证警告: {message}")
     
     def add_stat(self, key: str, value):
-        """Add a statistic."""
+        """添加统计信息。"""
         self.stats[key] = value
     
     def get_report(self) -> str:
         """
-        Get validation report as string.
+        获取字符串形式的验证报告。
         
-        Returns:
-            Formatted validation report
+        返回:
+            格式化的验证报告
         """
         lines = []
         lines.append("=" * 60)
-        lines.append("VALIDATION REPORT")
+        lines.append("验证报告")
         lines.append("=" * 60)
-        lines.append(f"Status: {'✅ PASSED' if self.is_valid else '❌ FAILED'}")
+        lines.append(f"状态: {'✅ 通过' if self.is_valid else '❌ 失败'}")
         lines.append("")
         
         if self.stats:
-            lines.append("Statistics:")
+            lines.append("统计信息:")
             for key, value in self.stats.items():
                 lines.append(f"  {key}: {value}")
             lines.append("")
         
         if self.errors:
-            lines.append(f"Errors ({len(self.errors)}):")
+            lines.append(f"错误 ({len(self.errors)}):")
             for error in self.errors:
                 lines.append(f"  ❌ {error}")
             lines.append("")
         
         if self.warnings:
-            lines.append(f"Warnings ({len(self.warnings)}):")
+            lines.append(f"警告 ({len(self.warnings)}):")
             for warning in self.warnings:
                 lines.append(f"  ⚠️  {warning}")
             lines.append("")
@@ -81,23 +81,23 @@ class ValidationResult:
 
 class COCOValidator:
     """
-    Validator for COCO format datasets.
+    COCO 格式数据集的验证器。
     
-    Checks:
-    - JSON structure validity
-    - Required fields presence
-    - Image file existence
-    - Annotation consistency
-    - Segmentation format
+    检查项：
+    - JSON 结构有效性
+    - 必填字段是否存在
+    - 图像文件是否存在
+    - 标注一致性
+    - 分割格式
     """
     
     def __init__(self, coco_json_path: str, images_dir: Optional[str] = None):
         """
-        Initialize COCO validator.
+        初始化 COCO 验证器。
         
-        Args:
-            coco_json_path: Path to COCO JSON file
-            images_dir: Optional directory containing images (for file checks)
+        参数:
+            coco_json_path: COCO JSON 文件路径
+            images_dir: 包含图像的可选目录（用于文件检查）
         """
         self.coco_json_path = Path(coco_json_path)
         self.images_dir = Path(images_dir) if images_dir else None
@@ -105,189 +105,189 @@ class COCOValidator:
     
     def validate(self) -> ValidationResult:
         """
-        Validate COCO dataset.
+        验证 COCO 数据集。
         
-        Returns:
-            ValidationResult object
+        返回:
+            ValidationResult 对象
         """
-        logger.info(f"Validating COCO dataset: {self.coco_json_path}")
+        logger.info(f"正在验证 COCO 数据集: {self.coco_json_path}")
         
-        # Check file exists
+        # 检查文件是否存在
         if not self.coco_json_path.exists():
-            self.result.add_error(f"COCO JSON file not found: {self.coco_json_path}")
+            self.result.add_error(f"未找到 COCO JSON 文件: {self.coco_json_path}")
             return self.result
         
-        # Load JSON
+        # 加载 JSON
         try:
             coco_data = load_json(self.coco_json_path)
         except Exception as e:
-            self.result.add_error(f"Failed to load JSON: {e}")
+            self.result.add_error(f"加载 JSON 失败: {e}")
             return self.result
         
-        # Validate structure
+        # 验证结构
         self._validate_structure(coco_data)
         
         if not self.result.is_valid:
             return self.result
         
-        # Validate components
+        # 验证组件
         self._validate_images(coco_data.get("images", []))
         self._validate_annotations(coco_data.get("annotations", []))
         self._validate_categories(coco_data.get("categories", []))
         
-        # Check consistency
+        # 检查一致性
         self._check_consistency(coco_data)
         
-        # Add statistics
-        self.result.add_stat("num_images", len(coco_data.get("images", [])))
-        self.result.add_stat("num_annotations", len(coco_data.get("annotations", [])))
-        self.result.add_stat("num_categories", len(coco_data.get("categories", [])))
+        # 添加统计信息
+        self.result.add_stat("图像数量", len(coco_data.get("images", [])))
+        self.result.add_stat("标注数量", len(coco_data.get("annotations", [])))
+        self.result.add_stat("类别数量", len(coco_data.get("categories", [])))
         
-        logger.info("COCO validation complete")
+        logger.info("COCO 验证完成")
         return self.result
     
     def _validate_structure(self, coco_data: Dict):
-        """Validate top-level structure."""
+        """验证顶级结构。"""
         required_fields = ["images", "annotations", "categories"]
         
         for field in required_fields:
             if field not in coco_data:
-                self.result.add_error(f"Missing required field: {field}")
+                self.result.add_error(f"缺少必填字段: {field}")
         
         optional_fields = ["info", "licenses"]
         for field in optional_fields:
             if field not in coco_data:
-                self.result.add_warning(f"Missing optional field: {field}")
+                self.result.add_warning(f"缺少可选字段: {field}")
     
     def _validate_images(self, images: List[Dict]):
-        """Validate images section."""
+        """验证图像部分。"""
         if not images:
-            self.result.add_error("No images found in dataset")
+            self.result.add_error("数据集中未找到图像")
             return
         
         image_ids = set()
         
         for idx, image in enumerate(images):
-            # Check required fields
+            # 检查必填字段
             required = ["id", "file_name", "width", "height"]
             for field in required:
                 if field not in image:
-                    self.result.add_error(f"Image {idx}: missing field '{field}'")
+                    self.result.add_error(f"图像 {idx}: 缺少字段 '{field}'")
             
-            # Check ID uniqueness
+            # 检查 ID 唯一性
             if "id" in image:
                 if image["id"] in image_ids:
-                    self.result.add_error(f"Duplicate image ID: {image['id']}")
+                    self.result.add_error(f"重复的图像 ID: {image['id']}")
                 image_ids.add(image["id"])
             
-            # Check dimensions
+            # 检查尺寸
             if "width" in image and "height" in image:
                 if image["width"] <= 0 or image["height"] <= 0:
-                    self.result.add_error(f"Image {idx}: invalid dimensions")
+                    self.result.add_error(f"图像 {idx}: 尺寸无效")
             
-            # Check file existence
+            # 检查文件是否存在
             if self.images_dir and "file_name" in image:
                 image_path = self.images_dir / image["file_name"]
                 if not image_path.exists():
-                    self.result.add_warning(f"Image file not found: {image['file_name']}")
+                    self.result.add_warning(f"未找到图像文件: {image['file_name']}")
     
     def _validate_annotations(self, annotations: List[Dict]):
-        """Validate annotations section."""
+        """验证标注部分。"""
         if not annotations:
-            self.result.add_warning("No annotations found in dataset")
+            self.result.add_warning("数据集中未找到标注")
             return
         
         annotation_ids = set()
         
         for idx, ann in enumerate(annotations):
-            # Check required fields
+            # 检查必填字段
             required = ["id", "image_id", "category_id", "bbox", "area"]
             for field in required:
                 if field not in ann:
-                    self.result.add_error(f"Annotation {idx}: missing field '{field}'")
+                    self.result.add_error(f"标注 {idx}: 缺少字段 '{field}'")
             
-            # Check ID uniqueness
+            # 检查 ID 唯一性
             if "id" in ann:
                 if ann["id"] in annotation_ids:
-                    self.result.add_error(f"Duplicate annotation ID: {ann['id']}")
+                    self.result.add_error(f"重复的标注 ID: {ann['id']}")
                 annotation_ids.add(ann["id"])
             
-            # Validate bbox
+            # 验证边界框
             if "bbox" in ann:
                 bbox = ann["bbox"]
                 if not isinstance(bbox, list) or len(bbox) != 4:
-                    self.result.add_error(f"Annotation {idx}: invalid bbox format")
+                    self.result.add_error(f"标注 {idx}: 边界框格式无效")
                 elif any(v < 0 for v in bbox):
-                    self.result.add_error(f"Annotation {idx}: negative bbox values")
+                    self.result.add_error(f"标注 {idx}: 边界框值为负数")
             
-            # Validate area
+            # 验证面积
             if "area" in ann:
                 if ann["area"] <= 0:
-                    self.result.add_warning(f"Annotation {idx}: zero or negative area")
+                    self.result.add_warning(f"标注 {idx}: 面积为零或负数")
             
-            # Check segmentation (optional)
+            # 检查分割（可选）
             if "segmentation" in ann:
                 seg = ann["segmentation"]
-                # Can be RLE or polygon
+                # 可以是 RLE 或多边形
                 if isinstance(seg, dict):
-                    # RLE format
+                    # RLE 格式
                     if "counts" not in seg or "size" not in seg:
-                        self.result.add_error(f"Annotation {idx}: invalid RLE format")
+                        self.result.add_error(f"标注 {idx}: RLE 格式无效")
                 elif isinstance(seg, list):
-                    # Polygon format
+                    # 多边形格式
                     for poly in seg:
-                        if len(poly) < 6:  # At least 3 points
-                            self.result.add_warning(f"Annotation {idx}: polygon too small")
+                        if len(poly) < 6:  # 至少 3 个点
+                            self.result.add_warning(f"标注 {idx}: 多边形太小")
     
     def _validate_categories(self, categories: List[Dict]):
-        """Validate categories section."""
+        """验证类别部分。"""
         if not categories:
-            self.result.add_error("No categories found in dataset")
+            self.result.add_error("数据集中未找到类别")
             return
         
         category_ids = set()
         
         for idx, cat in enumerate(categories):
-            # Check required fields
+            # 检查必填字段
             required = ["id", "name"]
             for field in required:
                 if field not in cat:
-                    self.result.add_error(f"Category {idx}: missing field '{field}'")
+                    self.result.add_error(f"类别 {idx}: 缺少字段 '{field}'")
             
-            # Check ID uniqueness
+            # 检查 ID 唯一性
             if "id" in cat:
                 if cat["id"] in category_ids:
-                    self.result.add_error(f"Duplicate category ID: {cat['id']}")
+                    self.result.add_error(f"重复的类别 ID: {cat['id']}")
                 category_ids.add(cat["id"])
     
     def _check_consistency(self, coco_data: Dict):
-        """Check consistency between sections."""
+        """检查各部分之间的一致性。"""
         images = coco_data.get("images", [])
         annotations = coco_data.get("annotations", [])
         categories = coco_data.get("categories", [])
         
-        # Get valid IDs
+        # 获取有效 ID
         image_ids = {img["id"] for img in images if "id" in img}
         category_ids = {cat["id"] for cat in categories if "id" in cat}
         
-        # Check annotation references
+        # 检查标注引用
         for ann in annotations:
             if "image_id" in ann and ann["image_id"] not in image_ids:
-                self.result.add_error(f"Annotation references non-existent image ID: {ann['image_id']}")
+                self.result.add_error(f"标注引用了不存在的图像 ID: {ann['image_id']}")
             
             if "category_id" in ann and ann["category_id"] not in category_ids:
-                self.result.add_error(f"Annotation references non-existent category ID: {ann['category_id']}")
+                self.result.add_error(f"标注引用了不存在的类别 ID: {ann['category_id']}")
 
 
 class YOLOValidator:
     """
-    Validator for YOLO format datasets.
+    YOLO 格式数据集的验证器。
     
-    Checks:
-    - Label file format
-    - Class ID validity
-    - Coordinate validity
-    - File structure
+    检查项：
+    - 标签文件格式
+    - 类别 ID 有效性
+    - 坐标有效性
+    - 文件结构
     """
     
     def __init__(self, 
@@ -295,12 +295,12 @@ class YOLOValidator:
                  classes_file: str,
                  images_dir: Optional[str] = None):
         """
-        Initialize YOLO validator.
+        初始化 YOLO 验证器。
         
-        Args:
-            labels_dir: Directory containing label txt files
-            classes_file: Path to classes.txt
-            images_dir: Optional directory containing images
+        参数:
+            labels_dir: 包含标签 txt 文件的目录
+            classes_file: classes.txt 的路径
+            images_dir: 包含图像的可选目录
         """
         self.labels_dir = Path(labels_dir)
         self.classes_file = Path(classes_file)
@@ -309,33 +309,33 @@ class YOLOValidator:
     
     def validate(self) -> ValidationResult:
         """
-        Validate YOLO dataset.
+        验证 YOLO 数据集。
         
-        Returns:
-            ValidationResult object
+        返回:
+            ValidationResult 对象
         """
-        logger.info(f"Validating YOLO dataset: {self.labels_dir}")
+        logger.info(f"正在验证 YOLO 数据集: {self.labels_dir}")
         
-        # Check directories exist
+        # 检查目录是否存在
         if not self.labels_dir.exists():
-            self.result.add_error(f"Labels directory not found: {self.labels_dir}")
+            self.result.add_error(f"未找到标签目录: {self.labels_dir}")
             return self.result
         
-        # Check classes file
+        # 检查类别文件
         if not self.classes_file.exists():
-            self.result.add_error(f"Classes file not found: {self.classes_file}")
+            self.result.add_error(f"未找到类别文件: {self.classes_file}")
             return self.result
         
-        # Load classes
-        with open(self.classes_file, 'r') as f:
+        # 加载类别
+        with open(self.classes_file, 'r', encoding='utf-8') as f:
             classes = [line.strip() for line in f if line.strip()]
         
         num_classes = len(classes)
-        self.result.add_stat("num_classes", num_classes)
+        self.result.add_stat("类别数量", num_classes)
         
-        # Validate label files
+        # 验证标签文件
         label_files = list(self.labels_dir.glob("*.txt"))
-        self.result.add_stat("num_label_files", len(label_files))
+        self.result.add_stat("标签文件数量", len(label_files))
         
         total_annotations = 0
         
@@ -343,7 +343,7 @@ class YOLOValidator:
             count = self._validate_label_file(label_file, num_classes)
             total_annotations += count
             
-            # Check corresponding image
+            # 检查对应的图像
             if self.images_dir:
                 image_name = label_file.stem
                 image_found = False
@@ -354,24 +354,24 @@ class YOLOValidator:
                         break
                 
                 if not image_found:
-                    self.result.add_warning(f"No image found for label: {label_file.name}")
+                    self.result.add_warning(f"未找到标签对应的图像: {label_file.name}")
         
-        self.result.add_stat("total_annotations", total_annotations)
+        self.result.add_stat("总标注数量", total_annotations)
         
-        logger.info("YOLO validation complete")
+        logger.info("YOLO 验证完成")
         return self.result
     
     def _validate_label_file(self, label_file: Path, num_classes: int) -> int:
         """
-        Validate a single label file.
+        验证单个标签文件。
         
-        Returns:
-            Number of annotations in file
+        返回:
+            文件中的标注数量
         """
         count = 0
         
         try:
-            with open(label_file, 'r') as f:
+            with open(label_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
             for line_num, line in enumerate(lines, start=1):
@@ -381,50 +381,50 @@ class YOLOValidator:
                 
                 parts = line.split()
                 
-                if len(parts) < 5:  # class_id + at least 2 points (4 coords)
+                if len(parts) < 5:  # class_id + 至少 2 个点（4 个坐标）
                     self.result.add_error(
-                        f"{label_file.name}:{line_num} - Too few values (need class_id + coordinates)"
+                        f"{label_file.name}:{line_num} - 数值太少（需要类别 ID + 坐标）"
                     )
                     continue
                 
-                # Check class ID
+                # 检查类别 ID
                 try:
                     class_id = int(parts[0])
                     if class_id < 0 or class_id >= num_classes:
                         self.result.add_error(
-                            f"{label_file.name}:{line_num} - Invalid class ID: {class_id}"
+                            f"{label_file.name}:{line_num} - 类别 ID 无效: {class_id}"
                         )
                 except ValueError:
                     self.result.add_error(
-                        f"{label_file.name}:{line_num} - Invalid class ID (not an integer)"
+                        f"{label_file.name}:{line_num} - 类别 ID 无效（不是整数）"
                     )
                     continue
                 
-                # Check coordinates
+                # 检查坐标
                 coords = parts[1:]
                 if len(coords) % 2 != 0:
                     self.result.add_error(
-                        f"{label_file.name}:{line_num} - Odd number of coordinates"
+                        f"{label_file.name}:{line_num} - 坐标数量为奇数"
                     )
                     continue
                 
-                # Validate coordinate values
+                # 验证坐标值
                 for coord in coords:
                     try:
                         val = float(coord)
                         if val < 0 or val > 1:
                             self.result.add_warning(
-                                f"{label_file.name}:{line_num} - Coordinate out of range [0,1]: {val}"
+                                f"{label_file.name}:{line_num} - 坐标超出范围 [0,1]: {val}"
                             )
                     except ValueError:
                         self.result.add_error(
-                            f"{label_file.name}:{line_num} - Invalid coordinate value: {coord}"
+                            f"{label_file.name}:{line_num} - 坐标值无效: {coord}"
                         )
                 
                 count += 1
                 
         except Exception as e:
-            self.result.add_error(f"Error reading {label_file.name}: {e}")
+            self.result.add_error(f"读取 {label_file.name} 时出错: {e}")
         
         return count
 
@@ -432,14 +432,14 @@ class YOLOValidator:
 def validate_coco_dataset(coco_json_path: str, 
                          images_dir: Optional[str] = None) -> ValidationResult:
     """
-    Validate COCO format dataset.
+    验证 COCO 格式数据集。
     
-    Args:
-        coco_json_path: Path to COCO JSON file
-        images_dir: Optional directory containing images
+    参数:
+        coco_json_path: COCO JSON 文件路径
+        images_dir: 包含图像的可选目录
         
-    Returns:
-        ValidationResult object
+    返回:
+        ValidationResult 对象
     """
     validator = COCOValidator(coco_json_path, images_dir)
     return validator.validate()
@@ -449,15 +449,15 @@ def validate_yolo_dataset(labels_dir: str,
                          classes_file: str,
                          images_dir: Optional[str] = None) -> ValidationResult:
     """
-    Validate YOLO format dataset.
+    验证 YOLO 格式数据集。
     
-    Args:
-        labels_dir: Directory containing label txt files
-        classes_file: Path to classes.txt
-        images_dir: Optional directory containing images
+    参数:
+        labels_dir: 包含标签 txt 文件的目录
+        classes_file: classes.txt 的路径
+        images_dir: 包含图像的可选目录
         
-    Returns:
-        ValidationResult object
+    返回:
+        ValidationResult 对象
     """
     validator = YOLOValidator(labels_dir, classes_file, images_dir)
     return validator.validate()
